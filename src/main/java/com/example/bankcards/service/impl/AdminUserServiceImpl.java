@@ -38,32 +38,21 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public OneUserResponseDTO getUserById(long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь не найден id= " + id));
+        User user = getUserByIdOrThrow(id);
         return userMapper.toOneResponseUser(user);
     }
 
     @Override
     public OneUserResponseDTO createUser(CreateUserRequestDTO request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Попытка создать пользователя с уже существующим email: {}", request.getEmail());
-            throw new ConflictException("Пользователь с таким email уже существует");
-        }
-        if (userRepository.existsByPhone(request.getPhone())) {
-            log.warn("Попытка создать пользователя с уже существующим номером телефона: {}", request.getPhone());
-            throw new ConflictException("Пользователь с таким номером телефона уже существует");
-        }
+        validateUniqueFields(request.getEmail(), request.getPhone(), null);
 
+        Instant instant = Instant.now();
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setPhone(request.getPhone());
-        user.setRole(request.getRole());
         user.setStatus(UserStatus.ACTIVE);
-        user.setCreatedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
+        user.setCreatedAt(instant);
+        user.setUpdatedAt(instant);
+
         User savedUser = userRepository.save(user);
         log.info("Создание пользователя id= {}", savedUser.getId());
         return userMapper.toOneResponseUser(savedUser);
@@ -71,7 +60,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public OneUserResponseDTO updateUser(long id, UpdateUserRequestDTO request) {
-        return null;
+        User user = getUserByIdOrThrow(id);
+
+        validateUniqueFields(request.getEmail(), request.getPhone(), user);
+
+        updateIfNotNull(request.getEmail(), user::setEmail);
+        updateIfNotNull(request.getPhone(), user::setPhone);
+        updateIfNotNull(request.getFirstName(), user::setFirstName);
+        updateIfNotNull(request.getLastName(), user::setLastName);
+
+        User savedUser = userRepository.save(user);
+        return userMapper.toOneResponseUser(savedUser);
     }
 
     private void updateIfNotNull(String value, Consumer<String> setter) {
@@ -98,5 +97,32 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void deleteUser(long id) {
 
+    }
+
+    private User getUserByIdOrThrow(long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден id= " + id));
+    }
+
+    private void validateUniqueFields(String email, String phone, User currentUser) {
+        if (email != null && isEmailTakenByAnotherUser(email, currentUser)) {
+            throw new ConflictException("Пользователь с таким email уже существует");
+        }
+
+        if (phone != null && isPhoneTakenByAnotherUser(phone, currentUser)) {
+            throw new ConflictException("Пользователь с таким номером телефона уже существует");
+        }
+    }
+
+    private boolean isEmailTakenByAnotherUser(String email, User currentUser) {
+        return userRepository.findByEmail(email)
+                .filter(foundUser -> currentUser == null || foundUser.getId() != currentUser.getId())
+                .isPresent();
+    }
+
+    private boolean isPhoneTakenByAnotherUser(String phone, User currentUser) {
+        return userRepository.findByPhone(phone)
+                .filter(foundUser -> currentUser == null || foundUser.getId() != currentUser.getId())
+                .isPresent();
     }
 }
