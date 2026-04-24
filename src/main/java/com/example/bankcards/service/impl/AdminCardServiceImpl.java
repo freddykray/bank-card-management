@@ -4,6 +4,7 @@ import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
 import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
+import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.CardMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.AdminCardService;
@@ -25,12 +26,12 @@ public class AdminCardServiceImpl implements AdminCardService {
                 ? cardRepository.findAll()
                 : cardRepository.findAllByDeletedAtIsNull();
         return cardMapper.toAdminCardListResponse(cards);
-
     }
 
     @Override
     public OneCardResponseDTO getCardById(long id) {
-        return null;
+        Card card = getOneByIdOrThrow(id);
+        return cardMapper.toAdminCardResponse(card);
     }
 
     @Override
@@ -51,6 +52,11 @@ public class AdminCardServiceImpl implements AdminCardService {
     @Override
     public void deleteCard(long id) {
 
+    }
+
+    private Card getOneByIdOrThrow(long id) {
+        return cardRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
     }
 
 }
