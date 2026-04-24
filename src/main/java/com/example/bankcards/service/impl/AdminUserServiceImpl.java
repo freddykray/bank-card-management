@@ -8,10 +8,10 @@ import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.UserStatus;
 import com.example.bankcards.exception.ConflictException;
-import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.UserMapper;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.service.AdminUserService;
+import com.example.bankcards.service.finder.UserFinder;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
+    private final UserFinder userFinder;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
@@ -42,7 +43,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional(readOnly = true)
     public OneUserResponseDTO getUserById(long id) {
-        User user = getUserByIdOrThrow(id);
+        User user = userFinder.getByIdOrThrow(id);
         return userMapper.toOneResponseUser(user);
     }
 
@@ -67,7 +68,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public OneUserResponseDTO updateUser(long id, UpdateUserRequestDTO request) {
-        User user = getUserByIdOrThrow(id);
+        User user = userFinder.getByIdOrThrow(id);
 
         validateUniqueFields(request.getEmail(), request.getPhone(), user);
         updateIfNotNull(request.getEmail(), user::setEmail);
@@ -82,7 +83,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
-        User user = getUserByIdOrThrow(id);
+        User user = userFinder.getByIdOrThrow(id);
         if (request.getRole() == user.getRole()) {
             throw new ConflictException("У пользователя уже установлена эта роль!");
         }
@@ -94,37 +95,41 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public OneUserResponseDTO blockUser(long id) {
-        User user = getUserByIdOrThrow(id);
+        User user = userFinder.getByIdOrThrow(id);
         if (user.getStatus() == UserStatus.BLOCKED) {
             throw new ConflictException("Пользователь уже заблокирован!");
         }
         user.setStatus(UserStatus.BLOCKED);
         user.setUpdatedAt(Instant.now());
+        log.info("Пользователь заблокирован: userId={}", user.getId());
+
         return userMapper.toOneResponseUser(user);
     }
 
     @Override
     @Transactional
     public OneUserResponseDTO activateUser(long id) {
-        User user = getUserByIdOrThrow(id);
+        User user = userFinder.getByIdOrThrow(id);
         if (user.getStatus() == UserStatus.ACTIVE) {
             throw new ConflictException("Пользователь уже активирован!");
         }
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedAt(Instant.now());
+        log.info("Пользователь активирован: userId={}", user.getId());
+
         return userMapper.toOneResponseUser(user);
     }
 
     @Override
     @Transactional
     public void deleteUser(long id) {
-        User user = getUserByIdOrThrow(id);
-        userRepository.delete(user);
-    }
-
-    private User getUserByIdOrThrow(long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь не найден id= " + id));
+        User user = userFinder.getByIdOrThrow(id);
+        if (user.getDeletedAt() != null) {
+            throw new ConflictException("Пользователь уже удален");
+        }
+        user.setDeletedAt(Instant.now());
+        user.setUpdatedAt(Instant.now());
+        log.info("Пользователь логически удален: userId={}", user.getId());
     }
 
     private void updateIfNotNull(String value, Consumer<String> setter) {

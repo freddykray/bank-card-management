@@ -31,8 +31,8 @@ public class Card {
     private Long id;
 
     @Column(nullable = false)
-
     private String encryptedCardNumber;
+
     @Column(nullable = false)
     private String cardNumberLast4;
 
