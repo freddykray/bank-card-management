@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -35,6 +36,7 @@ public class CreateUserRequestDTO {
 
     @Schema(name = "phone", description = "Номер телефона пользователя")
     @NotBlank
+    @Pattern(regexp = "^\\+\\d{10,15}$")
     private String phone;
 
     @Schema(name = "role", description = "Роль пользователя в системе")
