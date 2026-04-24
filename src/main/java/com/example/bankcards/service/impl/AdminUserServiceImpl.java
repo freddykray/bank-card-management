@@ -16,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,18 +32,21 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMapper userMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public ListUserResponseDTO getUsers() {
         List<User> users = userRepository.findAll();
         return userMapper.toListResponseUser(users);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OneUserResponseDTO getUserById(long id) {
         User user = getUserByIdOrThrow(id);
         return userMapper.toOneResponseUser(user);
     }
 
     @Override
+    @Transactional
     public OneUserResponseDTO createUser(CreateUserRequestDTO request) {
         validateUniqueFields(request.getEmail(), request.getPhone(), null);
 
@@ -59,6 +63,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Transactional
     public OneUserResponseDTO updateUser(long id, UpdateUserRequestDTO request) {
         User user = getUserByIdOrThrow(id);
 
@@ -80,24 +85,31 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Transactional
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
-        return null;
+        User user = getUserByIdOrThrow(id);
+        user.setRole(request.getRole());
+        return userMapper.toOneResponseUser(user);
     }
 
     @Override
+    @Transactional
     public OneUserResponseDTO blockUser(long id) {
         return null;
     }
 
     @Override
+    @Transactional
     public OneUserResponseDTO activateUser(long id) {
         return null;
     }
 
     @Override
+    @Transactional
     public void deleteUser(long id) {
 
     }
+
 
     private User getUserByIdOrThrow(long id) {
         return userRepository.findById(id)
@@ -106,10 +118,12 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private void validateUniqueFields(String email, String phone, User currentUser) {
         if (email != null && isEmailTakenByAnotherUser(email, currentUser)) {
+            log.warn("Попытка использовать уже занятый email при обновлении/создании пользователя: {}", email);
             throw new ConflictException("Пользователь с таким email уже существует");
         }
 
         if (phone != null && isPhoneTakenByAnotherUser(phone, currentUser)) {
+            log.warn("Попытка использовать уже занятый номер телефона при обновлении/создании пользователя: {}", phone);
             throw new ConflictException("Пользователь с таким номером телефона уже существует");
         }
     }
