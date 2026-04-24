@@ -6,7 +6,7 @@ import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 
 public interface AdminCardService {
 
-    ListCardResponseDTO getCards();
+    ListCardResponseDTO getCards(boolean includeDeleted);
 
     OneCardResponseDTO getCardById(long id);
 

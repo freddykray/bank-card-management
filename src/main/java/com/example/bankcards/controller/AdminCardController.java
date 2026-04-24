@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -33,7 +34,7 @@ public class AdminCardController {
     @GetMapping
     @Operation(
             summary = "Получить список карт",
-            description = "Возвращает список всех банковских карт в системе"
+            description = "Возвращает список банковских карт. По умолчанию удалённые карты не отображаются"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -44,7 +45,9 @@ public class AdminCardController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
     })
-    public ResponseEntity<ListCardResponseDTO> getCards() {
+    public ResponseEntity<ListCardResponseDTO> getCards(
+            @RequestParam(defaultValue = "false") boolean includeDeleted
+    ) {
         return ResponseEntity.ok(null);
     }
 
