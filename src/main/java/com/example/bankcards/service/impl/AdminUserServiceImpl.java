@@ -51,13 +51,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         validateUniqueFields(request.getEmail(), request.getPhone(), null);
 
         Instant instant = Instant.now();
-        User user = new User();
+
+        User user = userMapper.toEntity((request));
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedAt(instant);
         user.setUpdatedAt(instant);
 
         User savedUser = userRepository.save(user);
+
         log.info("Создание пользователя id= {}", savedUser.getId());
         return userMapper.toOneResponseUser(savedUser);
     }
@@ -74,6 +76,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         updateIfNotNull(request.getFirstName(), user::setFirstName);
         updateIfNotNull(request.getLastName(), user::setLastName);
 
+        user.setUpdatedAt(Instant.now());
         User savedUser = userRepository.save(user);
         return userMapper.toOneResponseUser(savedUser);
     }
@@ -89,13 +92,17 @@ public class AdminUserServiceImpl implements AdminUserService {
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
         User user = getUserByIdOrThrow(id);
         user.setRole(request.getRole());
+        user.setUpdatedAt(Instant.now());
         return userMapper.toOneResponseUser(user);
     }
 
     @Override
     @Transactional
     public OneUserResponseDTO blockUser(long id) {
-        return null;
+        User user = getUserByIdOrThrow(id);
+        user.setStatus(UserStatus.BLOCKED);
+        user.setUpdatedAt(Instant.now());
+        return userMapper.toOneResponseUser(user);
     }
 
     @Override
