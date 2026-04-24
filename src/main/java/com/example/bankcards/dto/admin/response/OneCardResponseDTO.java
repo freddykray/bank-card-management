@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Schema(description = "DTO с данными банковской карты для администратора")
-public class AdminCardResponseDTO {
+public class OneCardResponseDTO {
 
     @Schema(name = "id", description = "Идентификатор карты")
     private Long id;
