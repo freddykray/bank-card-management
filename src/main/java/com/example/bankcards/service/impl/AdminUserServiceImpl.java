@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @AllArgsConstructor
@@ -52,12 +53,11 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         Instant instant = Instant.now();
 
-        User user = userMapper.toEntity((request));
+        User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedAt(instant);
         user.setUpdatedAt(instant);
-
         User savedUser = userRepository.save(user);
 
         log.info("Создание пользователя id= {}", savedUser.getId());
@@ -70,27 +70,22 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = getUserByIdOrThrow(id);
 
         validateUniqueFields(request.getEmail(), request.getPhone(), user);
-
         updateIfNotNull(request.getEmail(), user::setEmail);
         updateIfNotNull(request.getPhone(), user::setPhone);
         updateIfNotNull(request.getFirstName(), user::setFirstName);
         updateIfNotNull(request.getLastName(), user::setLastName);
 
         user.setUpdatedAt(Instant.now());
-        User savedUser = userRepository.save(user);
-        return userMapper.toOneResponseUser(savedUser);
-    }
-
-    private void updateIfNotNull(String value, Consumer<String> setter) {
-        if (value != null) {
-            setter.accept(value);
-        }
+        return userMapper.toOneResponseUser(user);
     }
 
     @Override
     @Transactional
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
         User user = getUserByIdOrThrow(id);
+        if (request.getRole() == user.getRole()) {
+            throw new ConflictException("У пользователя уже установлена эта роль!");
+        }
         user.setRole(request.getRole());
         user.setUpdatedAt(Instant.now());
         return userMapper.toOneResponseUser(user);
@@ -100,6 +95,9 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public OneUserResponseDTO blockUser(long id) {
         User user = getUserByIdOrThrow(id);
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new ConflictException("Пользователь уже заблокирован!");
+        }
         user.setStatus(UserStatus.BLOCKED);
         user.setUpdatedAt(Instant.now());
         return userMapper.toOneResponseUser(user);
@@ -108,42 +106,54 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public OneUserResponseDTO activateUser(long id) {
-        return null;
+        User user = getUserByIdOrThrow(id);
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new ConflictException("Пользователь уже активирован!");
+        }
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUpdatedAt(Instant.now());
+        return userMapper.toOneResponseUser(user);
     }
 
     @Override
     @Transactional
     public void deleteUser(long id) {
-
+        User user = getUserByIdOrThrow(id);
+        userRepository.delete(user);
     }
-
 
     private User getUserByIdOrThrow(long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден id= " + id));
     }
 
+    private void updateIfNotNull(String value, Consumer<String> setter) {
+        if (value != null) {
+            setter.accept(value);
+        }
+    }
+
     private void validateUniqueFields(String email, String phone, User currentUser) {
         if (email != null && isEmailTakenByAnotherUser(email, currentUser)) {
-            log.warn("Попытка использовать уже занятый email при обновлении/создании пользователя: {}", email);
+            log.warn("Попытка использовать уже занятый email при обновлении/создании пользователя");
             throw new ConflictException("Пользователь с таким email уже существует");
         }
 
         if (phone != null && isPhoneTakenByAnotherUser(phone, currentUser)) {
-            log.warn("Попытка использовать уже занятый номер телефона при обновлении/создании пользователя: {}", phone);
+            log.warn("Попытка использовать уже занятый номер телефона при обновлении/создании пользователя");
             throw new ConflictException("Пользователь с таким номером телефона уже существует");
         }
     }
 
     private boolean isEmailTakenByAnotherUser(String email, User currentUser) {
         return userRepository.findByEmail(email)
-                .filter(foundUser -> currentUser == null || foundUser.getId() != currentUser.getId())
+                .filter(foundUser -> currentUser == null || !Objects.equals(foundUser.getId(), currentUser.getId()))
                 .isPresent();
     }
 
     private boolean isPhoneTakenByAnotherUser(String phone, User currentUser) {
         return userRepository.findByPhone(phone)
-                .filter(foundUser -> currentUser == null || foundUser.getId() != currentUser.getId())
+                .filter(foundUser -> currentUser == null || !Objects.equals(foundUser.getId(), currentUser.getId()))
                 .isPresent();
     }
 }
