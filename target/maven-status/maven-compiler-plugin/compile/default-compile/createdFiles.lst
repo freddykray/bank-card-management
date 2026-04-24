@@ -1,0 +1,7 @@
+com/example/bankcards/entity/Card.class
+com/example/bankcards/entity/enums/TransferStatus.class
+com/example/bankcards/entity/enums/CardStatus.class
+com/example/bankcards/entity/enums/UserStatus.class
+com/example/bankcards/entity/enums/Role.class
+com/example/bankcards/entity/User.class
+com/example/bankcards/entity/Transfer.class
