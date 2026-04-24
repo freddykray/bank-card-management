@@ -14,7 +14,7 @@ import java.time.Instant;
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @Schema(description = "DTO с данными пользователя для администратора")
-public class AdminUserResponseDTO {
+public class OneUserResponseDTO {
 
     @Schema(name = "id", description = "Идентификатор пользователя")
     private Long id;
