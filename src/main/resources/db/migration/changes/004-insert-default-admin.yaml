@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-insert-default-admin
+      author: fedor
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: email
+                  value: admin@example.com
+
+              - column:
+                  name: password
+                  value: '$2a$10$RrikqPfnmZ7bdAlYthOZc.vGO6MPcDP3Sx2tSzuEdOEwxhtLpie.i'
+
+              - column:
+                  name: first_name
+                  value: Admin
+
+              - column:
+                  name: last_name
+                  value: User
+
+              - column:
+                  name: phone
+                  value: '+79990000001'
+
+              - column:
+                  name: role
+                  value: ADMIN
+
+              - column:
+                  name: status
+                  value: ACTIVE
+
+              - column:
+                  name: created_at
+                  valueDate: 2026-04-25T00:00:00
+
+              - column:
+                  name: updated_at
+                  valueDate: 2026-04-25T00:00:00
