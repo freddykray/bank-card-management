@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/users")
 @Tag(
-        name = "Пользователи администратора",
+        name = "Операции администратора",
         description = "Операции администратора по управлению пользователями"
 )
 @Validated
