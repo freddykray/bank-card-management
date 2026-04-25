@@ -5,6 +5,7 @@ import com.example.bankcards.dto.admin.request.UpdateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
 import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
+import com.example.bankcards.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +26,10 @@ import org.springframework.web.bind.annotation.*;
         description = "Операции администратора по управлению пользователями"
 )
 @Validated
+@AllArgsConstructor
 public class AdminUserController {
+
+    private final AdminUserService adminUserService;
 
     @GetMapping
     @Operation(
@@ -40,7 +46,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
     })
     public ResponseEntity<ListUserResponseDTO> getList() {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.getUsers(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -59,7 +65,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content)
     })
     public ResponseEntity<OneUserResponseDTO> getUserById(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.getUserById(id), HttpStatus.OK);
     }
 
     @PostMapping
@@ -79,7 +85,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "409", description = "Пользователь с таким email уже существует", content = @Content)
     })
     public ResponseEntity<OneUserResponseDTO> createUser(@Valid @RequestBody CreateUserRequestDTO request) {
-        return ResponseEntity.status(201).body(null);
+        return new ResponseEntity<>(adminUserService.createUser(request), HttpStatus.CREATED);
     }
 
     @PatchMapping("/{id}")
@@ -103,7 +109,7 @@ public class AdminUserController {
             @PathVariable long id,
             @Valid @RequestBody UpdateUserRequestDTO request
     ) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.updateUser(id, request), HttpStatus.OK);
     }
 
     @PatchMapping("/{id}/role")
@@ -126,7 +132,7 @@ public class AdminUserController {
             @PathVariable long id,
             @Valid @RequestBody UpdateUserRoleRequestDTO request
     ) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.updateUserRole(id, request), HttpStatus.OK);
     }
 
     @PatchMapping("/{id}/block")
@@ -145,7 +151,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content)
     })
     public ResponseEntity<OneUserResponseDTO> blockUser(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.blockUser(id), HttpStatus.OK);
     }
 
     @PatchMapping("/{id}/activate")
@@ -164,7 +170,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content)
     })
     public ResponseEntity<OneUserResponseDTO> activateUser(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminUserService.activateUser(id), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -179,6 +185,7 @@ public class AdminUserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content)
     })
     public ResponseEntity<Void> deleteUser(@PathVariable long id) {
-        return ResponseEntity.noContent().build();
+        adminUserService.deleteUser(id);
+        return new ResponseEntity(HttpStatus.OK);
     }
 }

@@ -3,6 +3,7 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.user.request.CreateTransferRequestDTO;
 import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
 import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
+import com.example.bankcards.service.UserTransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,7 +11,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,7 +23,11 @@ import org.springframework.web.bind.annotation.*;
         name = "Переводы пользователя",
         description = "Операции пользователя по переводу средств между своими картами"
 )
+@Validated
+@AllArgsConstructor
 public class UserTransferController {
+
+    private final UserTransferService userTransferService;
 
     @PostMapping
     @Operation(
@@ -39,7 +47,7 @@ public class UserTransferController {
             @ApiResponse(responseCode = "409", description = "Перевод невозможно выполнить", content = @Content)
     })
     public ResponseEntity<OneTransferResponseDTO> createTransfer(@Valid @RequestBody CreateTransferRequestDTO request) {
-        return ResponseEntity.status(201).body(null);
+        return new ResponseEntity<>(userTransferService.createTransfer(request), HttpStatus.OK);
     }
 
     @GetMapping("/my")
@@ -55,8 +63,8 @@ public class UserTransferController {
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content)
     })
-    public ResponseEntity<ListTransferResponseDTO> getListTransfers() {
-        return ResponseEntity.ok(null);
+    public ResponseEntity<ListTransferResponseDTO> getMyListTransfers() {
+        return new ResponseEntity<>(userTransferService.getMyTransfers(), HttpStatus.OK);
     }
 
     @GetMapping("/my/{id}")
@@ -74,7 +82,7 @@ public class UserTransferController {
             @ApiResponse(responseCode = "403", description = "Нет доступа к данному переводу", content = @Content),
             @ApiResponse(responseCode = "404", description = "Перевод не найден", content = @Content)
     })
-    public ResponseEntity<OneTransferResponseDTO> getOneTransferById(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+    public ResponseEntity<OneTransferResponseDTO> getMyOneTransferById(@PathVariable long id) {
+        return new ResponseEntity<>(userTransferService.getMyTransferById(id), HttpStatus.OK);
     }
 }

@@ -3,12 +3,15 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.user.response.CardBalanceResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardListResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardOneResponseDTO;
+import com.example.bankcards.service.UserCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +21,10 @@ import org.springframework.web.bind.annotation.*;
         name = "Карты пользователя",
         description = "Операции пользователя со своими банковскими картами"
 )
+@AllArgsConstructor
 public class UserCardController {
+
+    private final UserCardService userCardService;
 
     @GetMapping
     @Operation(
@@ -34,7 +40,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content)
     })
     public ResponseEntity<UserCardListResponseDTO> getListCards() {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(userCardService.getMyCards(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -53,7 +59,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<UserCardOneResponseDTO> getOneCardById(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(userCardService.getMyCardById(id), HttpStatus.OK);
     }
 
     @GetMapping("/{id}/balance")
@@ -72,7 +78,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<CardBalanceResponseDTO> getOneCardBalance(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(userCardService.getMyCardBalance(id), HttpStatus.OK);
     }
 
     @PostMapping("/{id}/block-request")
@@ -92,6 +98,6 @@ public class UserCardController {
             @ApiResponse(responseCode = "409", description = "Запрос на блокировку уже существует", content = @Content)
     })
     public ResponseEntity<UserCardOneResponseDTO> requestCardBlock(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(userCardService.requestCardBlock(id), HttpStatus.OK);
     }
 }

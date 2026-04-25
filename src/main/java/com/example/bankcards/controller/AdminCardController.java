@@ -3,6 +3,7 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
 import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
+import com.example.bankcards.service.AdminCardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,6 +11,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,7 +32,10 @@ import org.springframework.web.bind.annotation.RestController;
         description = "Операции администратора по управлению банковскими картами"
 )
 @Validated
+@AllArgsConstructor
 public class AdminCardController {
+
+    private final AdminCardService adminCardService;
 
     @GetMapping
     @Operation(
@@ -48,7 +54,7 @@ public class AdminCardController {
     public ResponseEntity<ListCardResponseDTO> getCards(
             @RequestParam(defaultValue = "false") boolean includeDeleted
     ) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminCardService.getCards(includeDeleted), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -67,7 +73,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<OneCardResponseDTO> getCardById(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminCardService.getCardById(id), HttpStatus.OK);
     }
 
     @PostMapping
@@ -88,7 +94,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "409", description = "Карта с таким номером уже существует", content = @Content)
     })
     public ResponseEntity<OneCardResponseDTO> createCard(@Valid @RequestBody CreateCardRequestDTO request) {
-        return ResponseEntity.status(201).body(null);
+        return new ResponseEntity<>(adminCardService.createCard(request), HttpStatus.CREATED);
     }
 
     @PatchMapping("/{id}/block")
@@ -127,7 +133,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<OneCardResponseDTO> activateCard(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminCardService.activateCard(id), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
@@ -142,6 +148,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<Void> deleteCard(@PathVariable long id) {
-        return ResponseEntity.noContent().build();
+        adminCardService.deleteCard(id);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
