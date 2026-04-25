@@ -9,11 +9,25 @@ server:
   port: 8080
 
 spring:
-  liquibase:
-    change-log: classpath:db.migration/db.migration-master.yaml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_cards_db
+    username: freddykray
+    password: putintop
+    driver-class-name: org.postgresql.Driver
 
-Что нужно сделать:
-  - Указать настройки подключения к базе данных.
-  - Указать порт приложения.
-  - Настроить параметры безопасности и JWT.
-  - Включить Swagger UI.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    change-log: classpath:db/migration/db.migration-master.yaml
+
+#Что нужно сделать:
+#  - Указать настройки подключения к базе данных.
+#  - Указать порт приложения.
+#  - Настроить параметры безопасности и JWT.
+#  - Включить Swagger UI.
