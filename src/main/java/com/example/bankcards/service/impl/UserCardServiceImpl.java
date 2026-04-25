@@ -51,7 +51,6 @@ public class UserCardServiceImpl implements UserCardService {
     @Override
     @Transactional
     public UserCardOneResponseDTO requestCardBlock(long id) {
-
         Card card = getCardByIdAndUserIdAndDeletedAtIsNull(id);
         checkBlockRequestAndBlockedCard(card);
         Instant now = Instant.now();

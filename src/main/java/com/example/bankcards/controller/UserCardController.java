@@ -81,7 +81,7 @@ public class UserCardController {
         return new ResponseEntity<>(userCardService.getMyCardBalance(id), HttpStatus.OK);
     }
 
-    @PostMapping("/{id}/block-request")
+    @PatchMapping("/{id}/block-request")
     @Operation(
             summary = "Запросить блокировку карты",
             description = "Создаёт запрос на блокировку карты текущего пользователя"

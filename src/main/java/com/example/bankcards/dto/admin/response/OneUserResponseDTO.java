@@ -42,4 +42,7 @@ public class OneUserResponseDTO {
 
     @Schema(name = "updated_at", description = "Дата последнего обновления пользователя")
     private Instant updatedAt;
+
+    @Schema(name = "deletedAt", description = "Дата логического удаления пользователя")
+    private Instant deletedAt;
 }

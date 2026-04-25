@@ -186,6 +186,6 @@ public class AdminUserController {
     })
     public ResponseEntity<Void> deleteUser(@PathVariable long id) {
         adminUserService.deleteUser(id);
-        return new ResponseEntity(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

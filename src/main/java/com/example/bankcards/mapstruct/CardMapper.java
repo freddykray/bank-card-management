@@ -19,7 +19,7 @@ import java.util.List;
 )
 public interface CardMapper {
 
-    @Mapping(target = "maskedCardNumber", expression = "java(maskCardNumber(card.getCardNumberLast4()))")
+    @Mapping(target = "maskedCardNumber", expression = "java(\"**** **** **** \" + card.getCardNumberLast4())")
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "userEmail", source = "user.email")
     OneCardResponseDTO toAdminCardResponse(Card card);
@@ -36,7 +36,7 @@ public interface CardMapper {
         return response;
     }
 
-    @Mapping(target = "maskedCardNumber", expression = "java(maskCardNumber(card.getCardNumberLast4()))")
+    @Mapping(target = "maskedCardNumber", expression = "java(\"**** **** **** \" + card.getCardNumberLast4())")
     UserCardOneResponseDTO toUserCardOneResponse(Card card);
 
     List<UserCardOneResponseDTO> toUserCardOneResponseList(List<Card> cards);
@@ -52,10 +52,7 @@ public interface CardMapper {
     }
 
     @Mapping(target = "cardId", source = "id")
-    @Mapping(target = "maskedCardNumber", expression = "java(maskCardNumber(card.getCardNumberLast4()))")
+    @Mapping(target = "maskedCardNumber", expression = "java(\"**** **** **** \" + card.getCardNumberLast4())")
     CardBalanceResponseDTO toCardBalanceResponse(Card card);
 
-    default String maskCardNumber(String last4) {
-        return "**** **** **** " + last4;
-    }
 }
