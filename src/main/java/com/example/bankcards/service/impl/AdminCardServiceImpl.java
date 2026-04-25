@@ -7,10 +7,10 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
-import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.CardMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.AdminCardService;
+import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
 import com.example.bankcards.util.CardNumberEncryptor;
 import lombok.AllArgsConstructor;
@@ -30,6 +30,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     private final UserFinder userFinder;
     private final CardMapper cardMapper;
     private final CardNumberEncryptor encryptor;
+    private final CardFinder cardFinder;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,7 +44,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     @Override
     @Transactional(readOnly = true)
     public OneCardResponseDTO getCardById(long id) {
-        Card card = getOneByIdOrThrow(id);
+        Card card = cardFinder.getOneByIdOrThrow(id);
         return cardMapper.toAdminCardResponse(card);
     }
 
@@ -78,7 +79,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     @Override
     @Transactional
     public OneCardResponseDTO blockCard(long id) {
-        Card card = getOneByIdOrThrow(id);
+        Card card = cardFinder.getOneByIdOrThrow(id);
         validateCardCanBeBlocked(card);
         card.setStatus(CardStatus.BLOCKED);
         card.setBlockRequested(false);
@@ -91,7 +92,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     @Override
     @Transactional
     public OneCardResponseDTO activateCard(long id) {
-        Card card = getOneByIdOrThrow(id);
+        Card card = cardFinder.getOneByIdOrThrow(id);
         validateCardCanBeActivated(card);
         card.setStatus(CardStatus.ACTIVE);
         card.setUpdatedAt(Instant.now());
@@ -102,16 +103,11 @@ public class AdminCardServiceImpl implements AdminCardService {
     @Override
     @Transactional
     public void deleteCard(long id) {
-        Card card = getOneByIdOrThrow(id);
+        Card card = cardFinder.getOneByIdOrThrow(id);
         checkCardNotDeleted(card);
         card.setDeletedAt(Instant.now());
         card.setUpdatedAt(Instant.now());
         log.info("Карта логически удалена: cardId={}", card.getId());
-    }
-
-    private Card getOneByIdOrThrow(long id) {
-        return cardRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
     }
 
     private void validateCardCanBeBlocked(Card card) {
