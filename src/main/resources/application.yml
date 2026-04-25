@@ -5,6 +5,13 @@ app:
     secret: ${JWT_SECRET:1234567890123456789012345678901234567890123456789012345678901234}
     expiration: 3600000
 
+server:
+  port: 8080
+
+spring:
+  liquibase:
+    change-log: classpath:db.migration/db.migration-master.yaml
+
 Что нужно сделать:
   - Указать настройки подключения к базе данных.
   - Указать порт приложения.

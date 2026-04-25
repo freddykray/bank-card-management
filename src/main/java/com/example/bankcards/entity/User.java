@@ -49,8 +49,10 @@ public class User {
     @Column(nullable = false)
     private UserStatus status;
 
+    @Column(nullable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
     private Instant updatedAt;
 
     private Instant deletedAt;
