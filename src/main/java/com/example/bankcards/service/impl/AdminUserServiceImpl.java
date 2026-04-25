@@ -6,6 +6,7 @@ import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
 import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
 import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.enums.Role;
 import com.example.bankcards.entity.enums.UserStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.mapstruct.UserMapper;
@@ -80,11 +81,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
         User user = userFinder.getByIdOrThrow(id);
-        if (request.getRole() == user.getRole()) {
-            throw new ConflictException("У пользователя уже установлена эта роль!");
-        }
+
+        validateUserCanUpdateRole(user, request.getRole());
+
         user.setRole(request.getRole());
         user.setUpdatedAt(Instant.now());
+
+        log.info("Роль пользователя обновлена: role={}", request.getRole());
+
         return userMapper.toOneResponseUser(user);
     }
 
@@ -92,11 +96,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public OneUserResponseDTO blockUser(long id) {
         User user = userFinder.getByIdOrThrow(id);
-        if (user.getStatus() == UserStatus.BLOCKED) {
-            throw new ConflictException("Пользователь уже заблокирован!");
-        }
+
+        validateUserCanBeBlocked(user);
+
         user.setStatus(UserStatus.BLOCKED);
         user.setUpdatedAt(Instant.now());
+
         log.info("Пользователь заблокирован: userId={}", user.getId());
 
         return userMapper.toOneResponseUser(user);
@@ -106,11 +111,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public OneUserResponseDTO activateUser(long id) {
         User user = userFinder.getByIdOrThrow(id);
-        if (user.getStatus() == UserStatus.ACTIVE) {
-            throw new ConflictException("Пользователь уже активирован!");
-        }
+
+        validateUserCanBeActivated(user);
+
         user.setStatus(UserStatus.ACTIVE);
         user.setUpdatedAt(Instant.now());
+
         log.info("Пользователь активирован: userId={}", user.getId());
 
         return userMapper.toOneResponseUser(user);
@@ -120,9 +126,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional
     public void deleteUser(long id) {
         User user = userFinder.getByIdOrThrow(id);
-        if (user.getDeletedAt() != null) {
-            throw new ConflictException("Пользователь уже удален");
-        }
+        checkUserNotDeleted(user);
         user.setDeletedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
         log.info("Пользователь логически удален: userId={}", user.getId());
@@ -138,6 +142,36 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setUpdatedAt(now);
 
         return user;
+    }
+
+    private void validateUserCanBeActivated(User user) {
+        checkUserNotDeleted(user);
+
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new ConflictException("Пользователь уже активирован!");
+        }
+    }
+
+    private void validateUserCanBeBlocked(User user) {
+        checkUserNotDeleted(user);
+
+        if (user.getStatus() == UserStatus.BLOCKED) {
+            throw new ConflictException("Пользователь уже заблокирован!");
+        }
+    }
+
+    private void validateUserCanUpdateRole(User user, Role newRole) {
+        checkUserNotDeleted(user);
+
+        if (user.getRole() == newRole) {
+            throw new ConflictException("У пользователя уже установлена эта роль!");
+        }
+    }
+
+    private void checkUserNotDeleted(User user) {
+        if (user.getDeletedAt() != null) {
+            throw new ConflictException("Пользователь уже удалён");
+        }
     }
 
     private void updateIfNotNull(String value, Consumer<String> setter) {

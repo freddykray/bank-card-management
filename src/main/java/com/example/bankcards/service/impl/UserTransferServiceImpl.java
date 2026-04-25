@@ -90,7 +90,7 @@ public class UserTransferServiceImpl implements UserTransferService {
             throw new ConflictException("Нельзя выполнить перевод на ту же самую карту");
         }
 
-        if (from.getStatus() != CardStatus.ACTIVE || to.getStatus() != CardStatus.ACTIVE) {
+        if (isCardUnavailableForTransfer(from) || isCardUnavailableForTransfer(to)) {
             log.warn(
                     "Попытка перевода между неактивными картами: fromCardId={}, fromStatus={}, toCardId={}, toStatus={}",
                     from.getId(),
@@ -99,6 +99,7 @@ public class UserTransferServiceImpl implements UserTransferService {
                     to.getStatus()
             );
             throw new ConflictException("Перевод возможен только между активными картами");
+
         }
 
         if (from.getBalance().compareTo(amount) < 0) {
@@ -110,6 +111,11 @@ public class UserTransferServiceImpl implements UserTransferService {
             );
             throw new ConflictException("Недостаточно средств для перевода");
         }
+    }
+
+    private boolean isCardUnavailableForTransfer(Card card) {
+        return card.getStatus() != CardStatus.ACTIVE;
+
     }
 
     private Transfer createTransferEntity(Card from, Card to, BigDecimal amount, TransferStatus status) {

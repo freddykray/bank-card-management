@@ -1,4 +1,4 @@
-package com.example.bankcards.service.scheduler;
+package com.example.bankcards.service;
 
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.enums.CardStatus;

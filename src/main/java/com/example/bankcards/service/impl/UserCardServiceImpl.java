@@ -63,7 +63,7 @@ public class UserCardServiceImpl implements UserCardService {
     private Card getCardByIdAndUserIdAndDeletedAtIsNull(long id) {
         long userId = getUserIdFromContext();
         return cardRepository.findByIdAndUserIdAndDeletedAtIsNull(id, userId)
-                .orElseThrow(() -> new NotFoundException("У пользователя с id=" + userId + " не найдена карта id=" + id));
+                .orElseThrow(() -> new NotFoundException("Карта не найдена"));
     }
 
     private long getUserIdFromContext() {

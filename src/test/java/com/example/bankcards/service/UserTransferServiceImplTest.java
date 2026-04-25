@@ -1,6 +1,7 @@
 package com.example.bankcards.service;
 
 import com.example.bankcards.dto.user.request.CreateTransferRequestDTO;
+import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
 import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
@@ -8,6 +9,7 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.entity.enums.TransferStatus;
 import com.example.bankcards.exception.ConflictException;
+import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.TransferMapper;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.CurrentUserService;
@@ -20,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -203,5 +207,116 @@ public class UserTransferServiceImplTest {
         assertEquals(new BigDecimal("500.00"), toCard.getBalance());
 
         verify(transferRepository, never()).save(any(Transfer.class));
+    }
+
+    @Test
+    void createTransfer_expiredCard_throwsConflictException() {
+        long currentUserId = 1L;
+
+        CreateTransferRequestDTO request = new CreateTransferRequestDTO();
+        request.setFromCardId(10L);
+        request.setToCardId(20L);
+        request.setAmount(new BigDecimal("200.00"));
+
+        User user = new User();
+        user.setId(currentUserId);
+
+        Card fromCard = new Card();
+        fromCard.setId(10L);
+        fromCard.setUser(user);
+        fromCard.setStatus(CardStatus.EXPIRED);
+        fromCard.setBalance(new BigDecimal("1000.00"));
+
+        Card toCard = new Card();
+        toCard.setId(20L);
+        toCard.setUser(user);
+        toCard.setStatus(CardStatus.ACTIVE);
+        toCard.setBalance(new BigDecimal("500.00"));
+
+        when(currentUserService.getCurrentUserId()).thenReturn(currentUserId);
+        when(cardFinder.getByIdAndUserIdOrThrow(10L, currentUserId)).thenReturn(fromCard);
+        when(cardFinder.getByIdAndUserIdOrThrow(20L, currentUserId)).thenReturn(toCard);
+
+        ConflictException exception = assertThrows(
+                ConflictException.class,
+                () -> userTransferService.createTransfer(request)
+        );
+
+        assertEquals("Перевод возможен только между активными картами", exception.getMessage());
+
+        verify(transferRepository, never()).save(any(Transfer.class));
+    }
+
+    @Test
+    void getMyTransfers_success() {
+        long currentUserId = 1L;
+
+        Transfer transfer1 = new Transfer();
+        transfer1.setId(100L);
+
+        Transfer transfer2 = new Transfer();
+        transfer2.setId(101L);
+
+        List<Transfer> transfers = List.of(transfer1, transfer2);
+
+        ListTransferResponseDTO responseDto = new ListTransferResponseDTO();
+
+        when(currentUserService.getCurrentUserId()).thenReturn(currentUserId);
+        when(transferRepository.findAllByUserId(currentUserId)).thenReturn(transfers);
+        when(transferMapper.toTransferListResponse(transfers)).thenReturn(responseDto);
+
+        ListTransferResponseDTO result = userTransferService.getMyTransfers();
+
+        assertEquals(responseDto, result);
+
+        verify(currentUserService).getCurrentUserId();
+        verify(transferRepository).findAllByUserId(currentUserId);
+        verify(transferMapper).toTransferListResponse(transfers);
+    }
+
+    @Test
+    void getMyTransferById_success() {
+        long currentUserId = 1L;
+        long transferId = 100L;
+
+        Transfer transfer = new Transfer();
+        transfer.setId(transferId);
+
+        OneTransferResponseDTO responseDto = new OneTransferResponseDTO();
+        responseDto.setId(transferId);
+
+        when(currentUserService.getCurrentUserId()).thenReturn(currentUserId);
+        when(transferRepository.findByIdAndUserId(transferId, currentUserId))
+                .thenReturn(Optional.of(transfer));
+        when(transferMapper.toTransferResponse(transfer)).thenReturn(responseDto);
+
+        OneTransferResponseDTO result = userTransferService.getMyTransferById(transferId);
+
+        assertEquals(responseDto, result);
+
+        verify(currentUserService).getCurrentUserId();
+        verify(transferRepository).findByIdAndUserId(transferId, currentUserId);
+        verify(transferMapper).toTransferResponse(transfer);
+    }
+
+    @Test
+    void getMyTransferById_notFound_throwsNotFoundException() {
+        long currentUserId = 1L;
+        long transferId = 999L;
+
+        when(currentUserService.getCurrentUserId()).thenReturn(currentUserId);
+        when(transferRepository.findByIdAndUserId(transferId, currentUserId))
+                .thenReturn(Optional.empty());
+
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userTransferService.getMyTransferById(transferId)
+        );
+
+        assertEquals("Перевод не найден", exception.getMessage());
+
+        verify(currentUserService).getCurrentUserId();
+        verify(transferRepository).findByIdAndUserId(transferId, currentUserId);
+        verify(transferMapper, never()).toTransferResponse(any(Transfer.class));
     }
 }
