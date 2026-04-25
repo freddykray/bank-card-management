@@ -17,4 +17,6 @@ public interface AdminCardService {
     OneCardResponseDTO activateCard(long id);
 
     void deleteCard(long id);
+
+    ListCardResponseDTO getBlockRequestedCards();
 }

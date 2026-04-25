@@ -113,7 +113,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<OneCardResponseDTO> blockCard(@PathVariable long id) {
-        return ResponseEntity.ok(null);
+        return new ResponseEntity<>(adminCardService.blockCard(id), HttpStatus.CREATED);
     }
 
     @PatchMapping("/{id}/activate")
@@ -150,5 +150,23 @@ public class AdminCardController {
     public ResponseEntity<Void> deleteCard(@PathVariable long id) {
         adminCardService.deleteCard(id);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/block-requests")
+    @Operation(
+            summary = "Получить заявки на блокировку карт",
+            description = "Возвращает список карт, по которым пользователи запросили блокировку"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Список заявок на блокировку успешно получен",
+                    content = @Content(schema = @Schema(implementation = ListCardResponseDTO.class))
+            ),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
+    })
+    public ResponseEntity<ListCardResponseDTO> getBlockRequestedCards() {
+        return ResponseEntity.ok(adminCardService.getBlockRequestedCards());
     }
 }

@@ -100,6 +100,14 @@ public class AdminCardServiceImpl implements AdminCardService {
         log.info("Карта логически удалена: cardId={}", card.getId());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ListCardResponseDTO getBlockRequestedCards() {
+        List <Card> cards = cardRepository.findAllByBlockRequestedTrueAndDeletedAtIsNull();
+        log.info("Получен список заявок на блокировку карт, количество: {}", cards.size());
+        return cardMapper.toAdminCardListResponse(cards);
+    }
+
     private Card buildCard(CreateCardRequestDTO request, User user) {
         String last4 = extractLast4(request.getCardNumber());
         Instant now = Instant.now();
