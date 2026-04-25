@@ -13,11 +13,11 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     List<Card> findAllByDeletedAtIsNull();
 
-    Optional<Card> findByIdAndDeletedAtIsNull(long id);
+    Optional<Card> findByIdAndDeletedAtIsNull(long cardId);
 
     List<Card> findAllByUserIdAndDeletedAtIsNull(long userId);
 
-    Optional<Card> findByIdAndUserIdAndDeletedAtIsNull(long id, long userId);
+    Optional<Card> findByIdAndUserIdAndDeletedAtIsNull(long cardId, long userId);
 
     List<Card> findAllByUserIdAndStatusAndDeletedAtIsNull(long userId, CardStatus status);
 
