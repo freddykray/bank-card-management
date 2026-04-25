@@ -26,6 +26,14 @@ spring:
   liquibase:
     change-log: classpath:db/migration/db.migration-master.yaml
 
+  logging:
+    level:
+      root: INFO
+      com.example.bankcards: DEBUG
+      org.springframework.security: INFO
+      org.hibernate.SQL: DEBUG
+      org.hibernate.orm.jdbc.bind: TRACE
+
 #Что нужно сделать:
 #  - Указать настройки подключения к базе данных.
 #  - Указать порт приложения.
