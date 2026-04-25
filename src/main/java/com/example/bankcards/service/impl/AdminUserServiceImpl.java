@@ -52,16 +52,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     public OneUserResponseDTO createUser(CreateUserRequestDTO request) {
         validateUniqueFields(request.getEmail(), request.getPhone(), null);
 
-        Instant instant = Instant.now();
+        User user = buildUser(request);
 
-        User user = userMapper.toEntity(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(UserStatus.ACTIVE);
-        user.setCreatedAt(instant);
-        user.setUpdatedAt(instant);
         User savedUser = userRepository.save(user);
 
-        log.info("Создание пользователя id= {}", savedUser.getId());
+        log.info("Пользователь успешно создан: id={}, email={}", savedUser.getId(), savedUser.getEmail());
+
         return userMapper.toOneResponseUser(savedUser);
     }
 
@@ -130,6 +126,18 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setDeletedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
         log.info("Пользователь логически удален: userId={}", user.getId());
+    }
+
+    private User buildUser(CreateUserRequestDTO request) {
+        Instant now = Instant.now();
+
+        User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+
+        return user;
     }
 
     private void updateIfNotNull(String value, Consumer<String> setter) {

@@ -53,7 +53,7 @@ public class UserCardServiceImpl implements UserCardService {
     public UserCardOneResponseDTO requestCardBlock(long id) {
 
         Card card = getCardByIdAndUserIdAndDeletedAtIsNull(id);
-        validateCardCanRequestBlock(card);
+        checkBlockRequestAndBlockedCard(card);
         Instant now = Instant.now();
         card.setBlockRequested(true);
         card.setUpdatedAt(now);
@@ -70,8 +70,8 @@ public class UserCardServiceImpl implements UserCardService {
     private long getUserIdFromContext() {
         return currentUserService.getCurrentUserId();
     }
-
-    private void validateCardCanRequestBlock(Card card) {
+    
+    private void checkBlockRequestAndBlockedCard(Card card) {
         if (card.getStatus() == CardStatus.BLOCKED) {
             throw new ConflictException("Карта уже заблокирована");
         }
@@ -79,5 +79,5 @@ public class UserCardServiceImpl implements UserCardService {
             throw new ConflictException("Запрос на блокировку карты уже создан");
         }
     }
-
+    
 }

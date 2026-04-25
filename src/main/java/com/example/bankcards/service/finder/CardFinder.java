@@ -16,4 +16,9 @@ public class CardFinder {
         return cardRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
     }
+
+    public Card getByIdAndUserIdOrThrow(long cardId, long userId) {
+       return cardRepository.findByIdAndUserIdAndDeletedAtIsNull(cardId, userId)
+                .orElseThrow(() -> new NotFoundException("Карта не найдена!"));
+    }
 }

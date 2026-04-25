@@ -53,26 +53,16 @@ public class AdminCardServiceImpl implements AdminCardService {
     public OneCardResponseDTO createCard(CreateCardRequestDTO request) {
         User user = userFinder.getByIdOrThrow(request.getUserId());
 
-        String last4 = request.getCardNumber()
-                .substring(request.getCardNumber().length() - 4);
-
-        Instant instant = Instant.now();
-
-        Card card = new Card();
-        card.setEncryptedCardNumber(encryptor.encrypt(request.getCardNumber()));
-        card.setCardNumberLast4(last4);
-        card.setOwnerName(request.getOwnerName());
-        card.setExpirationDate(request.getExpirationDate());
-        card.setStatus(CardStatus.ACTIVE);
-        card.setBalance(request.getInitialBalance());
-        card.setBlockRequested(false);
-        card.setUser(user);
-        card.setCreatedAt(instant);
-        card.setUpdatedAt(instant);
+        Card card = buildCard(request, user);
 
         Card savedCard = cardRepository.save(card);
+
         log.info("Карта создана: cardId={}, userId={}, last4={}",
-                savedCard.getId(), user.getId(), savedCard.getCardNumberLast4());
+                savedCard.getId(),
+                user.getId(),
+                savedCard.getCardNumberLast4()
+        );
+
         return cardMapper.toAdminCardResponse(savedCard);
     }
 
@@ -108,6 +98,29 @@ public class AdminCardServiceImpl implements AdminCardService {
         card.setDeletedAt(Instant.now());
         card.setUpdatedAt(Instant.now());
         log.info("Карта логически удалена: cardId={}", card.getId());
+    }
+
+    private Card buildCard(CreateCardRequestDTO request, User user) {
+        String last4 = extractLast4(request.getCardNumber());
+        Instant now = Instant.now();
+
+        Card card = new Card();
+        card.setEncryptedCardNumber(encryptor.encrypt(request.getCardNumber()));
+        card.setCardNumberLast4(last4);
+        card.setOwnerName(request.getOwnerName());
+        card.setExpirationDate(request.getExpirationDate());
+        card.setStatus(CardStatus.ACTIVE);
+        card.setBalance(request.getInitialBalance());
+        card.setBlockRequested(false);
+        card.setUser(user);
+        card.setCreatedAt(now);
+        card.setUpdatedAt(now);
+
+        return card;
+    }
+
+    private String extractLast4(String cardNumber) {
+        return cardNumber.substring(cardNumber.length() - 4);
     }
 
     private void validateCardCanBeBlocked(Card card) {
