@@ -57,8 +57,10 @@ public class Card {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
     private Instant updatedAt;
 
     private Instant deletedAt;
