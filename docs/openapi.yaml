@@ -1,1 +1,1121 @@
-# Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+openapi: 3.1.0
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: Переводы пользователя
+  description: Операции пользователя по переводу средств между своими картами
+- name: Карты пользователя
+  description: Операции пользователя со своими банковскими картами
+- name: Карты администратора
+  description: Операции администратора по управлению банковскими картами
+- name: Операции администратора
+  description: Операции администратора по управлению пользователями
+- name: Авторизация
+  description: Вход пользователя в систему и получение JWT-токена
+paths:
+  /api/transfers:
+    post:
+      tags:
+      - Переводы пользователя
+      summary: Создать перевод
+      description: Выполняет перевод средств между картами текущего пользователя
+      operationId: createTransfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransferRequestDTO"
+        required: true
+      responses:
+        "201":
+          description: Перевод успешно выполнен
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneTransferResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Нет доступа к одной из карт
+        "404":
+          description: Карта не найдена
+        "409":
+          description: Перевод невозможно выполнить
+  /api/auth/login:
+    post:
+      tags:
+      - Авторизация
+      summary: Вход в систему
+      description: "Проверяет email и пароль пользователя, возвращает JWT-токен"
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequestDTO"
+        required: true
+      responses:
+        "200":
+          description: Пользователь успешно авторизован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AuthResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Неверный email или пароль
+  /api/admin/users:
+    get:
+      tags:
+      - Операции администратора
+      summary: Получить список пользователей
+      description: Возвращает список всех пользователей системы
+      operationId: getList
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/AdminUserSearchRequestDTO"
+      responses:
+        "200":
+          description: Список пользователей успешно получен
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+    post:
+      tags:
+      - Операции администратора
+      summary: Создать пользователя
+      description: Создаёт нового пользователя системы
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequestDTO"
+        required: true
+      responses:
+        "201":
+          description: Пользователь успешно создан
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "409":
+          description: Пользователь с таким email уже существует
+  /api/admin/cards:
+    get:
+      tags:
+      - Карты администратора
+      summary: Получить список карт
+      description: Возвращает список банковских карт. По умолчанию удалённые карты
+        не отображаются
+      operationId: getCards
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/AdminCardSearchRequestDTO"
+      responses:
+        "200":
+          description: Список карт успешно получен
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+    post:
+      tags:
+      - Карты администратора
+      summary: Создать карту
+      description: Создаёт новую банковскую карту для пользователя
+      operationId: createCard
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardRequestDTO"
+        required: true
+      responses:
+        "201":
+          description: Карта успешно создана
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCardResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+        "409":
+          description: Карта с таким номером уже существует
+  /api/cards/my/{id}/block-request:
+    patch:
+      tags:
+      - Карты пользователя
+      summary: Запросить блокировку карты
+      description: Создаёт запрос на блокировку карты текущего пользователя
+      operationId: requestCardBlock
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Запрос на блокировку карты успешно создан
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserCardOneResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Нет доступа к данной карте
+        "404":
+          description: Карта не найдена
+        "409":
+          description: Запрос на блокировку уже существует
+  /api/admin/users/{id}:
+    get:
+      tags:
+      - Операции администратора
+      summary: Получить пользователя по идентификатору
+      description: Возвращает данные пользователя по его идентификатору
+      operationId: getUserById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Пользователь успешно найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+    delete:
+      tags:
+      - Операции администратора
+      summary: Удалить пользователя
+      description: Логически удаляет пользователя через deletedAt
+      operationId: deleteUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Пользователь успешно удалён
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+    patch:
+      tags:
+      - Операции администратора
+      summary: Изменить данные пользователя
+      description: "Изменяет основные данные пользователя: email, имя, фамилию и т\
+        елефон"
+      operationId: updateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequestDTO"
+        required: true
+      responses:
+        "200":
+          description: Данные пользователя успешно изменены
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+        "409":
+          description: Пользователь с таким email уже существует
+  /api/admin/users/{id}/role:
+    patch:
+      tags:
+      - Операции администратора
+      summary: Изменить роль пользователя
+      description: Изменяет роль пользователя в системе
+      operationId: updateUserRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleRequestDTO"
+        required: true
+      responses:
+        "200":
+          description: Роль пользователя успешно изменена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "400":
+          description: Некорректные данные запроса
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+  /api/admin/users/{id}/block:
+    patch:
+      tags:
+      - Операции администратора
+      summary: Заблокировать пользователя
+      description: Переводит пользователя в статус BLOCKED
+      operationId: blockUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Пользователь успешно заблокирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+  /api/admin/users/{id}/activate:
+    patch:
+      tags:
+      - Операции администратора
+      summary: Активировать пользователя
+      description: Переводит пользователя в статус ACTIVE
+      operationId: activateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Пользователь успешно активирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneUserResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Пользователь не найден
+  /api/admin/cards/{id}/block:
+    patch:
+      tags:
+      - Карты администратора
+      summary: Заблокировать карту
+      description: Переводит банковскую карту в статус BLOCKED
+      operationId: blockCard
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Карта успешно заблокирована
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCardResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Карта не найдена
+  /api/admin/cards/{id}/activate:
+    patch:
+      tags:
+      - Карты администратора
+      summary: Активировать карту
+      description: Переводит банковскую карту в статус ACTIVE
+      operationId: activateCard
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Карта успешно активирована
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCardResponseDTO"
+        "400":
+          description: Карту невозможно активировать
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Карта не найдена
+  /api/transfers/my:
+    get:
+      tags:
+      - Переводы пользователя
+      summary: Получить историю переводов
+      description: Возвращает историю переводов текущего пользователя
+      operationId: getMyTransfers
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/UserTransferSearchRequestDTO"
+      responses:
+        "200":
+          description: История переводов успешно получена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+  /api/transfers/my/{id}:
+    get:
+      tags:
+      - Переводы пользователя
+      summary: Получить перевод по идентификатору
+      description: Возвращает данные перевода текущего пользователя по его идентификатору
+      operationId: getMyOneTransferById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Перевод успешно найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneTransferResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Нет доступа к данному переводу
+        "404":
+          description: Перевод не найден
+  /api/cards/my:
+    get:
+      tags:
+      - Карты пользователя
+      summary: Получить список своих карт
+      description: Возвращает список банковских карт текущего пользователя
+      operationId: getMyCards
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/UserCardSearchRequestDTO"
+      responses:
+        "200":
+          description: Список карт успешно получен
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+  /api/cards/my/{id}:
+    get:
+      tags:
+      - Карты пользователя
+      summary: Получить свою карту по идентификатору
+      description: Возвращает данные карты текущего пользователя по её идентификатору
+      operationId: getOneCardById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Карта успешно найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserCardOneResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Нет доступа к данной карте
+        "404":
+          description: Карта не найдена
+  /api/cards/my/{id}/balance:
+    get:
+      tags:
+      - Карты пользователя
+      summary: Получить баланс карты
+      description: Возвращает баланс карты текущего пользователя
+      operationId: getOneCardBalance
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Баланс карты успешно получен
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CardBalanceResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Нет доступа к данной карте
+        "404":
+          description: Карта не найдена
+  /api/admin/cards/{id}:
+    get:
+      tags:
+      - Карты администратора
+      summary: Получить карту по идентификатору
+      description: Возвращает данные банковской карты по её идентификатору
+      operationId: getCardById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: Карта успешно найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCardResponseDTO"
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Карта не найдена
+    delete:
+      tags:
+      - Карты администратора
+      summary: Удалить карту
+      description: Логически удаляет банковскую карту через deletedAt
+      operationId: deleteCard
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Карта успешно удалена
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Недостаточно прав доступа
+        "404":
+          description: Карта не найдена
+components:
+  schemas:
+    CreateTransferRequestDTO:
+      type: object
+      description: DTO для создания перевода между картами пользователя
+      properties:
+        from_card_id:
+          type: integer
+          format: int64
+          description: Идентификатор карты списания
+        to_card_id:
+          type: integer
+          format: int64
+          description: Идентификатор карты зачисления
+        amount:
+          type: number
+          description: Сумма перевода
+          minimum: 0.01
+      required:
+      - amount
+      - from_card_id
+      - to_card_id
+    OneTransferResponseDTO:
+      type: object
+      description: DTO с данными перевода пользователя
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Идентификатор перевода
+        from_card_id:
+          type: integer
+          format: int64
+          description: Идентификатор карты списания
+        to_card_id:
+          type: integer
+          format: int64
+          description: Идентификатор карты зачисления
+        from_masked_card_number:
+          type: string
+          description: Маскированный номер карты списания
+        to_masked_card_number:
+          type: string
+          description: Маскированный номер карты зачисления
+        amount:
+          type: number
+          description: Сумма перевода
+        status:
+          type: string
+          description: Статус перевода
+          enum:
+          - SUCCESS
+          - FAILED
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания перевода
+    LoginRequestDTO:
+      type: object
+      description: DTO для входа пользователя в систему
+      properties:
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          minLength: 1
+        password:
+          type: string
+          description: Пароль пользователя
+          minLength: 1
+      required:
+      - email
+      - password
+    AuthResponseDTO:
+      type: object
+      description: DTO с результатом входа пользователя в систему
+      properties:
+        access_token:
+          type: string
+          description: JWT-токен доступа
+    CreateUserRequestDTO:
+      type: object
+      description: DTO для создания пользователя
+      properties:
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          minLength: 1
+        password:
+          type: string
+          description: Пароль пользователя
+          minLength: 1
+        first_name:
+          type: string
+          description: Имя пользователя
+          minLength: 1
+        last_name:
+          type: string
+          description: Фамилия пользователя
+          minLength: 1
+        phone:
+          type: string
+          description: Номер телефона пользователя
+          minLength: 1
+          pattern: "^\\+\\d{10,15}$"
+        role:
+          type: string
+          description: Роль пользователя в системе
+          enum:
+          - USER
+          - ADMIN
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+      - phone
+      - role
+    OneUserResponseDTO:
+      type: object
+      description: DTO с данными пользователя для администратора
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Идентификатор пользователя
+        email:
+          type: string
+          description: Электронная почта пользователя
+        first_name:
+          type: string
+          description: Имя пользователя
+        last_name:
+          type: string
+          description: Фамилия пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+          - USER
+          - ADMIN
+        status:
+          type: string
+          description: Статус пользователя
+          enum:
+          - ACTIVE
+          - BLOCKED
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания пользователя
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления пользователя
+        deletedAt:
+          type: string
+          format: date-time
+          description: Дата логического удаления пользователя
+    CreateCardRequestDTO:
+      type: object
+      description: DTO для создания банковской карты
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: "Идентификатор пользователя, которому создаётся карта"
+        owner_name:
+          type: string
+          description: Имя владельца карты
+          minLength: 1
+        initial_balance:
+          type: number
+          description: Начальный баланс карты
+          minimum: 0.00
+      required:
+      - initial_balance
+      - owner_name
+      - user_id
+    OneCardResponseDTO:
+      type: object
+      description: DTO с данными банковской карты для администратора
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Идентификатор карты
+        masked_card_number:
+          type: string
+          description: Маскированный номер карты
+        card_number_last4:
+          type: string
+          description: Последние четыре цифры номера карты
+        owner_name:
+          type: string
+          description: Имя владельца карты
+        expiration_date:
+          type: string
+          format: date
+          description: Дата окончания срока действия карты
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        balance:
+          type: number
+          description: Баланс карты
+        block_requested:
+          type: boolean
+          description: Признак запроса на блокировку карты
+        block_requested_at:
+          type: string
+          format: date-time
+          description: Дата запроса на блокировку карты
+        user_id:
+          type: integer
+          format: int64
+          description: Идентификатор владельца карты
+        user_email:
+          type: string
+          description: Электронная почта владельца карты
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания карты
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления карты
+        deleted_at:
+          type: string
+          format: date-time
+          description: Дата логического удаления
+    UserCardOneResponseDTO:
+      type: object
+      description: DTO с данными карты пользователя
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Идентификатор карты
+        masked_card_number:
+          type: string
+          description: Маскированный номер карты
+        owner_name:
+          type: string
+          description: Имя владельца карты
+        expiration_date:
+          type: string
+          format: date
+          description: Дата окончания срока действия карты
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        balance:
+          type: number
+          description: Баланс карты
+        block_requested:
+          type: boolean
+          description: Признак запроса на блокировку карты
+    UpdateUserRequestDTO:
+      type: object
+      description: DTO для изменения данных пользователя
+      properties:
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+        first_name:
+          type: string
+          description: Имя пользователя
+        last_name:
+          type: string
+          description: Фамилия пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+    UpdateUserRoleRequestDTO:
+      type: object
+      description: DTO для изменения роли пользователя
+      properties:
+        role:
+          type: string
+          description: Новая роль пользователя
+          enum:
+          - USER
+          - ADMIN
+      required:
+      - role
+    UserTransferSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода переводов пользователя
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус перевода
+          enum:
+          - SUCCESS
+          - FAILED
+        from_card_last4:
+          type: string
+          description: Последние 4 цифры карты списания
+        to_card_last4:
+          type: string
+          description: Последние 4 цифры карты зачисления
+        amount_from:
+          type: number
+          description: Минимальная сумма перевода
+        amount_to:
+          type: number
+          description: Максимальная сумма перевода
+        created_from:
+          type: string
+          format: date-time
+          description: Дата создания перевода от
+        created_to:
+          type: string
+          format: date-time
+          description: Дата создания перевода до
+    PageResponseDTO:
+      type: object
+      description: DTO для постраничного ответа
+      properties:
+        items:
+          type: array
+          description: Список элементов текущей страницы
+          items: {}
+        page:
+          type: integer
+          format: int32
+          description: Номер текущей страницы
+        size:
+          type: integer
+          format: int32
+          description: Размер страницы
+        total_elements:
+          type: integer
+          format: int64
+          description: Общее количество элементов
+        total_pages:
+          type: integer
+          format: int32
+          description: Общее количество страниц
+        first:
+          type: boolean
+          description: Является ли текущая страница первой
+        last:
+          type: boolean
+          description: Является ли текущая страница последней
+    UserCardSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода карт пользователя
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        last4:
+          type: string
+          description: Последние 4 цифры номера карты
+        expiration_date_from:
+          type: string
+          format: date
+          description: Дата окончания срока действия от
+        expiration_date_to:
+          type: string
+          format: date
+          description: Дата окончания срока действия до
+        balance_from:
+          type: number
+          description: Минимальный баланс
+        balance_to:
+          type: number
+          description: Максимальный баланс
+        block_requested:
+          type: boolean
+          description: Есть ли запрос на блокировку карты
+    CardBalanceResponseDTO:
+      type: object
+      description: DTO с балансом карты пользователя
+      properties:
+        card_id:
+          type: integer
+          format: int64
+          description: Идентификатор карты
+        masked_card_number:
+          type: string
+          description: Маскированный номер карты
+        balance:
+          type: number
+          description: Баланс карты
+    AdminUserSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода пользователей администратором
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        email:
+          type: string
+          description: Email пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+          - USER
+          - ADMIN
+        status:
+          type: string
+          description: Статус пользователя
+          enum:
+          - ACTIVE
+          - BLOCKED
+        include_deleted:
+          type: boolean
+          default: false
+          description: Включать ли логически удалённых пользователей
+    AdminCardSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода банковских карт администратором
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        include_deleted:
+          type: boolean
+          default: false
+          description: Включать ли логически удалённые карты
+        last4:
+          type: string
+          description: Последние 4 цифры номера карты
+        owner_name:
+          type: string
+          description: Имя владельца карты
+        expiration_date_from:
+          type: string
+          format: date
+          description: Дата окончания срока действия от
+        expiration_date_to:
+          type: string
+          format: date
+          description: Дата окончания срока действия до
+        balance_from:
+          type: number
+          description: Минимальный баланс
+        balance_to:
+          type: number
+          description: Максимальный баланс
+        block_requested:
+          type: boolean
+          description: Есть ли запрос на блокировку карты

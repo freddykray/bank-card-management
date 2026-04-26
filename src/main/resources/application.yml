@@ -11,8 +11,8 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/bank_cards_db
-    username: freddykray
-    password: putintop
+    username: postgresql
+    password: postgresql
     driver-class-name: org.postgresql.Driver
 
   jpa:
