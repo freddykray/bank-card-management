@@ -51,7 +51,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public OneUserResponseDTO createUser(CreateUserRequestDTO request) {
-        validateUniqueFields(request.getEmail(), request.getPhone(), null);
+        validateUniqueFieldsForCreate(request.getEmail(), request.getPhone());
 
         User user = buildUser(request);
 
@@ -67,13 +67,19 @@ public class AdminUserServiceImpl implements AdminUserService {
     public OneUserResponseDTO updateUser(long id, UpdateUserRequestDTO request) {
         User user = userFinder.getByIdOrThrow(id);
 
-        validateUniqueFields(request.getEmail(), request.getPhone(), user);
-        updateIfNotNull(request.getEmail(), user::setEmail);
-        updateIfNotNull(request.getPhone(), user::setPhone);
-        updateIfNotNull(request.getFirstName(), user::setFirstName);
-        updateIfNotNull(request.getLastName(), user::setLastName);
+        validateUniqueFieldsForUpdate(request, user);
 
-        user.setUpdatedAt(Instant.now());
+        boolean changed = false;
+
+        changed |= updateIfChanged(request.getEmail(), user.getEmail(), user::setEmail);
+        changed |= updateIfChanged(request.getPhone(), user.getPhone(), user::setPhone);
+        changed |= updateIfChanged(request.getFirstName(), user.getFirstName(), user::setFirstName);
+        changed |= updateIfChanged(request.getLastName(), user.getLastName(), user::setLastName);
+
+        if (changed) {
+            user.setUpdatedAt(Instant.now());
+        }
+
         return userMapper.toOneResponseUser(user);
     }
 
@@ -174,33 +180,46 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
-    private void updateIfNotNull(String value, Consumer<String> setter) {
-        if (value != null) {
-            setter.accept(value);
-        }
-    }
-
-    private void validateUniqueFields(String email, String phone, User currentUser) {
-        if (email != null && isEmailTakenByAnotherUser(email, currentUser)) {
-            log.warn("Попытка использовать уже занятый email при обновлении/создании пользователя");
+    private void validateUniqueFieldsForUpdate(UpdateUserRequestDTO request, User user) {
+        if (isChanged(request.getEmail(), user.getEmail()) && isEmailExists(request.getEmail())) {
             throw new ConflictException("Пользователь с таким email уже существует");
         }
 
-        if (phone != null && isPhoneTakenByAnotherUser(phone, currentUser)) {
-            log.warn("Попытка использовать уже занятый номер телефона при обновлении/создании пользователя");
+        if (isChanged(request.getPhone(), user.getPhone()) && isPhoneExists(request.getPhone())) {
             throw new ConflictException("Пользователь с таким номером телефона уже существует");
         }
     }
 
-    private boolean isEmailTakenByAnotherUser(String email, User currentUser) {
-        return userRepository.findByEmail(email)
-                .filter(foundUser -> currentUser == null || !Objects.equals(foundUser.getId(), currentUser.getId()))
-                .isPresent();
+    private <T> boolean updateIfChanged(T newValue, T oldValue, Consumer<T> setter) {
+        if (isChanged(newValue, oldValue)) {
+            setter.accept(newValue);
+            return true;
+        }
+        return false;
     }
 
-    private boolean isPhoneTakenByAnotherUser(String phone, User currentUser) {
-        return userRepository.findByPhone(phone)
-                .filter(foundUser -> currentUser == null || !Objects.equals(foundUser.getId(), currentUser.getId()))
-                .isPresent();
+    private boolean isChanged(Object newValue, Object oldValue) {
+        return newValue != null && !Objects.equals(newValue, oldValue);
+
+    }
+
+    private void validateUniqueFieldsForCreate(String email, String phone) {
+        if (isEmailExists(email)) {
+            log.warn("Попытка создать пользователя с уже занятым email");
+            throw new ConflictException("Пользователь с таким email уже существует");
+        }
+
+        if (isPhoneExists(phone)) {
+            log.warn("Попытка создать пользователя с уже занятым номером телефона");
+            throw new ConflictException("Пользователь с таким номером телефона уже существует");
+        }
+    }
+
+    private boolean isEmailExists(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
+
+    private boolean isPhoneExists(String phone) {
+        return userRepository.findByPhone(phone).isPresent();
     }
 }

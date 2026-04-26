@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -186,7 +187,7 @@ class AdminUserServiceImplTest {
     }
 
     @Test
-    void updateUser_success() {
+    void updateUser_success_changedFields() {
         long userId = 1L;
 
         UpdateUserRequestDTO request = new UpdateUserRequestDTO();
@@ -220,29 +221,66 @@ class AdminUserServiceImplTest {
         assertNotNull(user.getUpdatedAt());
 
         verify(userFinder).getByIdOrThrow(userId);
-        verify(userRepository).findByEmail(request.getEmail());
-        verify(userRepository).findByPhone(request.getPhone());
+        verify(userRepository).findByEmail("new@example.com");
+        verify(userRepository).findByPhone("+79990000003");
         verify(userMapper).toOneResponseUser(user);
     }
 
     @Test
-    void updateUser_emailAlreadyTaken_throwsConflictException() {
+    void updateUser_sameFields_doesNotUpdateUpdatedAtAndDoesNotCheckUniqueFields() {
+        long userId = 1L;
+
+        UpdateUserRequestDTO request = new UpdateUserRequestDTO();
+        request.setEmail("user@example.com");
+        request.setPhone("+79990000002");
+        request.setFirstName("Fedor");
+        request.setLastName("User");
+
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("user@example.com");
+        user.setPhone("+79990000002");
+        user.setFirstName("Fedor");
+        user.setLastName("User");
+
+        OneUserResponseDTO responseDto = new OneUserResponseDTO();
+        responseDto.setId(userId);
+
+        when(userFinder.getByIdOrThrow(userId)).thenReturn(user);
+        when(userMapper.toOneResponseUser(user)).thenReturn(responseDto);
+
+        OneUserResponseDTO result = adminUserService.updateUser(userId, request);
+
+        assertEquals(responseDto, result);
+        assertEquals("user@example.com", user.getEmail());
+        assertEquals("+79990000002", user.getPhone());
+        assertEquals("Fedor", user.getFirstName());
+        assertEquals("User", user.getLastName());
+        assertNull(user.getUpdatedAt());
+
+        verify(userFinder).getByIdOrThrow(userId);
+        verify(userRepository, never()).findByEmail(any(String.class));
+        verify(userRepository, never()).findByPhone(any(String.class));
+        verify(userMapper).toOneResponseUser(user);
+    }
+
+    @Test
+    void updateUser_changedEmailAlreadyExists_throwsConflictException() {
         long userId = 1L;
 
         UpdateUserRequestDTO request = new UpdateUserRequestDTO();
         request.setEmail("taken@example.com");
-        request.setPhone("+79990000003");
 
-        User currentUser = new User();
-        currentUser.setId(userId);
-        currentUser.setEmail("old@example.com");
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("old@example.com");
 
-        User anotherUser = new User();
-        anotherUser.setId(2L);
-        anotherUser.setEmail(request.getEmail());
+        User existingUser = new User();
+        existingUser.setId(2L);
+        existingUser.setEmail("taken@example.com");
 
-        when(userFinder.getByIdOrThrow(userId)).thenReturn(currentUser);
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(anotherUser));
+        when(userFinder.getByIdOrThrow(userId)).thenReturn(user);
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(existingUser));
 
         ConflictException exception = assertThrows(
                 ConflictException.class,
@@ -250,33 +288,32 @@ class AdminUserServiceImplTest {
         );
 
         assertEquals("Пользователь с таким email уже существует", exception.getMessage());
+        assertEquals("old@example.com", user.getEmail());
+        assertNull(user.getUpdatedAt());
 
         verify(userFinder).getByIdOrThrow(userId);
-        verify(userRepository).findByEmail(request.getEmail());
-        verify(userRepository, never()).findByPhone(request.getPhone());
+        verify(userRepository).findByEmail("taken@example.com");
+        verify(userRepository, never()).findByPhone(any(String.class));
         verify(userMapper, never()).toOneResponseUser(any(User.class));
     }
 
     @Test
-    void updateUser_phoneAlreadyTaken_throwsConflictException() {
+    void updateUser_changedPhoneAlreadyExists_throwsConflictException() {
         long userId = 1L;
 
         UpdateUserRequestDTO request = new UpdateUserRequestDTO();
-        request.setEmail("new@example.com");
         request.setPhone("+79990000003");
 
-        User currentUser = new User();
-        currentUser.setId(userId);
-        currentUser.setEmail("old@example.com");
-        currentUser.setPhone("+79990000002");
+        User user = new User();
+        user.setId(userId);
+        user.setPhone("+79990000002");
 
-        User anotherUser = new User();
-        anotherUser.setId(2L);
-        anotherUser.setPhone(request.getPhone());
+        User existingUser = new User();
+        existingUser.setId(2L);
+        existingUser.setPhone("+79990000003");
 
-        when(userFinder.getByIdOrThrow(userId)).thenReturn(currentUser);
-        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(anotherUser));
+        when(userFinder.getByIdOrThrow(userId)).thenReturn(user);
+        when(userRepository.findByPhone(request.getPhone())).thenReturn(Optional.of(existingUser));
 
         ConflictException exception = assertThrows(
                 ConflictException.class,
@@ -284,10 +321,11 @@ class AdminUserServiceImplTest {
         );
 
         assertEquals("Пользователь с таким номером телефона уже существует", exception.getMessage());
+        assertEquals("+79990000002", user.getPhone());
+        assertNull(user.getUpdatedAt());
 
         verify(userFinder).getByIdOrThrow(userId);
-        verify(userRepository).findByEmail(request.getEmail());
-        verify(userRepository).findByPhone(request.getPhone());
+        verify(userRepository).findByPhone("+79990000003");
         verify(userMapper, never()).toOneResponseUser(any(User.class));
     }
 
@@ -297,7 +335,6 @@ class AdminUserServiceImplTest {
 
         UpdateUserRequestDTO request = new UpdateUserRequestDTO();
         request.setEmail("new@example.com");
-        request.setPhone("+79990000003");
 
         when(userFinder.getByIdOrThrow(userId))
                 .thenThrow(new NotFoundException("Пользователь не найден"));

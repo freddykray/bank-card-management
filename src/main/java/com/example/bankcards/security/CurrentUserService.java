@@ -29,8 +29,4 @@ public class CurrentUserService {
     public long getCurrentUserId() {
         return getCurrentUserDetails().getId();
     }
-
-    public String getCurrentUserEmail() {
-        return getCurrentUserDetails().getUsername();
-    }
 }
