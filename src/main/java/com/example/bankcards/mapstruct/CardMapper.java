@@ -1,6 +1,5 @@
 package com.example.bankcards.mapstruct;
 
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.dto.user.response.CardBalanceResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardListResponseDTO;
@@ -23,18 +22,6 @@ public interface CardMapper {
     @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "userEmail", source = "user.email")
     OneCardResponseDTO toAdminCardResponse(Card card);
-
-    List<OneCardResponseDTO> toAdminCardResponseList(List<Card> cards);
-
-    default ListCardResponseDTO toAdminCardListResponse(List<Card> cards) {
-        List<OneCardResponseDTO> responseCards = toAdminCardResponseList(cards);
-
-        ListCardResponseDTO response = new ListCardResponseDTO();
-        response.setCards(responseCards);
-        response.setCount(responseCards.size());
-
-        return response;
-    }
 
     @Mapping(target = "maskedCardNumber", expression = "java(\"**** **** **** \" + card.getCardNumberLast4())")
     UserCardOneResponseDTO toUserCardOneResponse(Card card);

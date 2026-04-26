@@ -1,7 +1,8 @@
 package com.example.bankcards.service.impl;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.GeneratedCardDetails;
@@ -9,19 +10,23 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.mapstruct.CardMapper;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.AdminCardService;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
+import com.example.bankcards.specification.AdminCardSpecification;
 import com.example.bankcards.util.CardDetailsGenerator;
 import com.example.bankcards.util.CardNumberEncryptor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -34,14 +39,22 @@ public class AdminCardServiceImpl implements AdminCardService {
     private final CardNumberEncryptor encryptor;
     private final CardFinder cardFinder;
     private final CardDetailsGenerator cardDetailsGenerator;
+    private final PageResponseMapper pageResponseMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public ListCardResponseDTO getCards(boolean includeDeleted) {
-        List<Card> cards = includeDeleted
-                ? cardRepository.findAll()
-                : cardRepository.findAllByDeletedAtIsNull();
-        return cardMapper.toAdminCardListResponse(cards);
+    public PageResponseDTO<OneCardResponseDTO> getCards(AdminCardSearchRequestDTO request) {
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+
+        Page<Card> cardsPage = cardRepository.findAll(
+                AdminCardSpecification.from(request),
+                pageable
+        );
+
+        return pageResponseMapper.toPageResponse(
+                cardsPage,
+                cardMapper::toAdminCardResponse
+        );
     }
 
     @Override
@@ -101,14 +114,6 @@ public class AdminCardServiceImpl implements AdminCardService {
         card.setDeletedAt(Instant.now());
         card.setUpdatedAt(Instant.now());
         log.info("Карта логически удалена: cardId={}", card.getId());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ListCardResponseDTO getBlockRequestedCards() {
-        List <Card> cards = cardRepository.findAllByBlockRequestedTrueAndDeletedAtIsNull();
-        log.info("Получен список заявок на блокировку карт, количество: {}", cards.size());
-        return cardMapper.toAdminCardListResponse(cards);
     }
 
     private Card buildCard(CreateCardRequestDTO request, User user) {

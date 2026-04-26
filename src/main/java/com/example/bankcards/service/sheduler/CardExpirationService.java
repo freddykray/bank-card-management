@@ -1,4 +1,4 @@
-package com.example.bankcards.service;
+package com.example.bankcards.service.sheduler;
 
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.enums.CardStatus;

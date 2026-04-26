@@ -78,13 +78,19 @@ paths:
       summary: Получить список пользователей
       description: Возвращает список всех пользователей системы
       operationId: getList
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/AdminUserSearchRequestDTO"
       responses:
         "200":
           description: Список пользователей успешно получен
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/ListUserResponseDTO"
+                $ref: "#/components/schemas/PageResponseDTO"
         "401":
           description: Пользователь не авторизован
         "403":
@@ -125,19 +131,18 @@ paths:
         не отображаются
       operationId: getCards
       parameters:
-      - name: includeDeleted
+      - name: request
         in: query
-        required: false
+        required: true
         schema:
-          type: boolean
-          default: false
+          $ref: "#/components/schemas/AdminCardSearchRequestDTO"
       responses:
         "200":
           description: Список карт успешно получен
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/ListCardResponseDTO"
+                $ref: "#/components/schemas/PageResponseDTO"
         "401":
           description: Пользователь не авторизован
         "403":
@@ -437,14 +442,20 @@ paths:
       - Переводы пользователя
       summary: Получить историю переводов
       description: Возвращает историю переводов текущего пользователя
-      operationId: getMyListTransfers
+      operationId: getMyTransfers
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/UserTransferSearchRequestDTO"
       responses:
         "200":
           description: История переводов успешно получена
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/ListTransferResponseDTO"
+                $ref: "#/components/schemas/PageResponseDTO"
         "401":
           description: Пользователь не авторизован
   /api/transfers/my/{id}:
@@ -480,14 +491,20 @@ paths:
       - Карты пользователя
       summary: Получить список своих карт
       description: Возвращает список банковских карт текущего пользователя
-      operationId: getListCards
+      operationId: getMyCards
+      parameters:
+      - name: request
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/UserCardSearchRequestDTO"
       responses:
         "200":
           description: Список карт успешно получен
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/UserCardListResponseDTO"
+                $ref: "#/components/schemas/PageResponseDTO"
         "401":
           description: Пользователь не авторизован
   /api/cards/my/{id}:
@@ -593,25 +610,6 @@ paths:
           description: Недостаточно прав доступа
         "404":
           description: Карта не найдена
-  /api/admin/cards/block-requests:
-    get:
-      tags:
-      - Карты администратора
-      summary: Получить заявки на блокировку карт
-      description: "Возвращает список карт, по которым пользователи запросили блок\
-        ировку"
-      operationId: getBlockRequestedCards
-      responses:
-        "200":
-          description: Список заявок на блокировку успешно получен
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ListCardResponseDTO"
-        "401":
-          description: Пользователь не авторизован
-        "403":
-          description: Недостаточно прав доступа
 components:
   schemas:
     CreateTransferRequestDTO:
@@ -912,32 +910,117 @@ components:
           - ADMIN
       required:
       - role
-    ListTransferResponseDTO:
+    UserTransferSearchRequestDTO:
       type: object
-      description: DTO со списком переводов пользователя
+      description: DTO для поиска и постраничного вывода переводов пользователя
       properties:
-        transfers:
-          type: array
-          description: Список переводов
-          items:
-            $ref: "#/components/schemas/OneTransferResponseDTO"
-        count:
+        page:
           type: integer
           format: int32
-          description: Количество возвращённых переводов
-    UserCardListResponseDTO:
-      type: object
-      description: DTO со списком карт пользователя
-      properties:
-        cards:
-          type: array
-          description: Список карт пользователя
-          items:
-            $ref: "#/components/schemas/UserCardOneResponseDTO"
-        count:
+          default: 0
+          description: Номер страницы
+        size:
           type: integer
           format: int32
-          description: Количество возвращённых карт
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус перевода
+          enum:
+          - SUCCESS
+          - FAILED
+        from_card_last4:
+          type: string
+          description: Последние 4 цифры карты списания
+        to_card_last4:
+          type: string
+          description: Последние 4 цифры карты зачисления
+        amount_from:
+          type: number
+          description: Минимальная сумма перевода
+        amount_to:
+          type: number
+          description: Максимальная сумма перевода
+        created_from:
+          type: string
+          format: date-time
+          description: Дата создания перевода от
+        created_to:
+          type: string
+          format: date-time
+          description: Дата создания перевода до
+    PageResponseDTO:
+      type: object
+      description: DTO для постраничного ответа
+      properties:
+        items:
+          type: array
+          description: Список элементов текущей страницы
+          items: {}
+        page:
+          type: integer
+          format: int32
+          description: Номер текущей страницы
+        size:
+          type: integer
+          format: int32
+          description: Размер страницы
+        total_elements:
+          type: integer
+          format: int64
+          description: Общее количество элементов
+        total_pages:
+          type: integer
+          format: int32
+          description: Общее количество страниц
+        first:
+          type: boolean
+          description: Является ли текущая страница первой
+        last:
+          type: boolean
+          description: Является ли текущая страница последней
+    UserCardSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода карт пользователя
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        last4:
+          type: string
+          description: Последние 4 цифры номера карты
+        expiration_date_from:
+          type: string
+          format: date
+          description: Дата окончания срока действия от
+        expiration_date_to:
+          type: string
+          format: date
+          description: Дата окончания срока действия до
+        balance_from:
+          type: number
+          description: Минимальный баланс
+        balance_to:
+          type: number
+          description: Максимальный баланс
+        block_requested:
+          type: boolean
+          description: Есть ли запрос на блокировку карты
     CardBalanceResponseDTO:
       type: object
       description: DTO с балансом карты пользователя
@@ -952,29 +1035,87 @@ components:
         balance:
           type: number
           description: Баланс карты
-    ListUserResponseDTO:
+    AdminUserSearchRequestDTO:
       type: object
-      description: DTO со списком пользователей
+      description: DTO для поиска и постраничного вывода пользователей администратором
       properties:
-        users:
-          type: array
-          description: Список пользователей
-          items:
-            $ref: "#/components/schemas/OneUserResponseDTO"
-        count:
+        page:
           type: integer
           format: int32
-          description: Количество возвращённых пользователей
-    ListCardResponseDTO:
-      type: object
-      description: DTO со списком карт
-      properties:
-        cards:
-          type: array
-          description: Список карт
-          items:
-            $ref: "#/components/schemas/OneCardResponseDTO"
-        count:
+          default: 0
+          description: Номер страницы
+        size:
           type: integer
           format: int32
-          description: Количество возвращённых карт
+          default: 10
+          description: Размер страницы
+        email:
+          type: string
+          description: Email пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+          - USER
+          - ADMIN
+        status:
+          type: string
+          description: Статус пользователя
+          enum:
+          - ACTIVE
+          - BLOCKED
+        include_deleted:
+          type: boolean
+          default: false
+          description: Включать ли логически удалённых пользователей
+    AdminCardSearchRequestDTO:
+      type: object
+      description: DTO для поиска и постраничного вывода банковских карт администратором
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы
+        size:
+          type: integer
+          format: int32
+          default: 10
+          description: Размер страницы
+        status:
+          type: string
+          description: Статус карты
+          enum:
+          - ACTIVE
+          - BLOCKED
+          - EXPIRED
+        include_deleted:
+          type: boolean
+          default: false
+          description: Включать ли логически удалённые карты
+        last4:
+          type: string
+          description: Последние 4 цифры номера карты
+        owner_name:
+          type: string
+          description: Имя владельца карты
+        expiration_date_from:
+          type: string
+          format: date
+          description: Дата окончания срока действия от
+        expiration_date_to:
+          type: string
+          format: date
+          description: Дата окончания срока действия до
+        balance_from:
+          type: number
+          description: Минимальный баланс
+        balance_to:
+          type: number
+          description: Максимальный баланс
+        block_requested:
+          type: boolean
+          description: Есть ли запрос на блокировку карты

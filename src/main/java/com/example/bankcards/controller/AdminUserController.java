@@ -1,9 +1,10 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminUserSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
-import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
 import com.example.bankcards.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,13 +41,15 @@ public class AdminUserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Список пользователей успешно получен",
-                    content = @Content(schema = @Schema(implementation = ListUserResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
     })
-    public ResponseEntity<ListUserResponseDTO> getList() {
-        return new ResponseEntity<>(adminUserService.getUsers(), HttpStatus.OK);
+    public ResponseEntity<PageResponseDTO<OneUserResponseDTO>> getList(
+            @ModelAttribute AdminUserSearchRequestDTO request
+    ) {
+        return ResponseEntity.ok(adminUserService.getUsers(request));
     }
 
     @GetMapping("/{id}")

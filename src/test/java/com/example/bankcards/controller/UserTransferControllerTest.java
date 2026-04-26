@@ -1,6 +1,7 @@
 package com.example.bankcards.controller;
 
-import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.user.request.UserTransferSearchRequestDTO;
 import com.example.bankcards.security.JwtFilter;
 import com.example.bankcards.service.UserTransferService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.ArgumentMatchers.any;
@@ -79,14 +81,38 @@ class UserTransferControllerTest {
 
     @Test
     void getMyTransfers_success() throws Exception {
-        ListTransferResponseDTO responseDto = new ListTransferResponseDTO();
+        PageResponseDTO<OneTransferResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        0,
+                        0,
+                        true,
+                        true
+                );
 
-        when(userTransferService.getMyTransfers()).thenReturn(responseDto);
+        when(userTransferService.getMyTransfers(any(UserTransferSearchRequestDTO.class)))
+                .thenReturn(responseDto);
 
-        mockMvc.perform(get("/api/transfers/my"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/transfers/my")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("status", "SUCCESS")
+                        .param("fromCardLast4", "1234")
+                        .param("toCardLast4", "5678")
+                        .param("amountFrom", "100")
+                        .param("amountTo", "5000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.total_elements").value(0))
+                .andExpect(jsonPath("$.total_pages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
 
-        verify(userTransferService).getMyTransfers();
+        verify(userTransferService).getMyTransfers(any(UserTransferSearchRequestDTO.class));
     }
 
     @Test

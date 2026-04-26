@@ -1,7 +1,8 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.service.AdminCardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -46,15 +46,14 @@ public class AdminCardController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Список карт успешно получен",
-                    content = @Content(schema = @Schema(implementation = ListCardResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
     })
-    public ResponseEntity<ListCardResponseDTO> getCards(
-            @RequestParam(defaultValue = "false") boolean includeDeleted
+    public ResponseEntity<PageResponseDTO<OneCardResponseDTO>> getCards(AdminCardSearchRequestDTO request
     ) {
-        return new ResponseEntity<>(adminCardService.getCards(includeDeleted), HttpStatus.OK);
+        return ResponseEntity.ok(adminCardService.getCards(request));
     }
 
     @GetMapping("/{id}")
@@ -150,23 +149,5 @@ public class AdminCardController {
     public ResponseEntity<Void> deleteCard(@PathVariable long id) {
         adminCardService.deleteCard(id);
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @GetMapping("/block-requests")
-    @Operation(
-            summary = "Получить заявки на блокировку карт",
-            description = "Возвращает список карт, по которым пользователи запросили блокировку"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Список заявок на блокировку успешно получен",
-                    content = @Content(schema = @Schema(implementation = ListCardResponseDTO.class))
-            ),
-            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
-            @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)
-    })
-    public ResponseEntity<ListCardResponseDTO> getBlockRequestedCards() {
-        return ResponseEntity.ok(adminCardService.getBlockRequestedCards());
     }
 }

@@ -1,7 +1,8 @@
 package com.example.bankcards.service;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.GeneratedCardDetails;
@@ -10,6 +11,7 @@ import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.CardMapper;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
@@ -19,14 +21,21 @@ import com.example.bankcards.util.CardNumberEncryptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,12 +43,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AdminCardDetailsGeneratorServiceImplTest {
+class AdminCardServiceImplTest {
 
     @Mock
     private CardRepository cardRepository;
@@ -49,6 +59,9 @@ class AdminCardDetailsGeneratorServiceImplTest {
 
     @Mock
     private CardMapper cardMapper;
+
+    @Mock
+    private PageResponseMapper pageResponseMapper;
 
     @Mock
     private CardDetailsGenerator cardDetailsGenerator;
@@ -63,51 +76,103 @@ class AdminCardDetailsGeneratorServiceImplTest {
     private AdminCardServiceImpl adminCardService;
 
     @Test
-    void getCards_includeDeletedTrue_success() {
+    void getCards_success_returnsPageResponse() {
+        AdminCardSearchRequestDTO request = new AdminCardSearchRequestDTO();
+        request.setPage(0);
+        request.setSize(10);
+        request.setStatus(CardStatus.ACTIVE);
+        request.setIncludeDeleted(false);
+
         Card card1 = new Card();
         card1.setId(1L);
 
         Card card2 = new Card();
         card2.setId(2L);
 
-        List<Card> cards = List.of(card1, card2);
+        Page<Card> cardsPage = new PageImpl<>(
+                List.of(card1, card2),
+                PageRequest.of(0, 10),
+                2
+        );
 
-        ListCardResponseDTO responseDto = new ListCardResponseDTO();
+        PageResponseDTO<OneCardResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        2,
+                        1,
+                        true,
+                        true
+                );
 
-        when(cardRepository.findAll()).thenReturn(cards);
-        when(cardMapper.toAdminCardListResponse(cards)).thenReturn(responseDto);
+        when(cardRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(cardsPage);
 
-        ListCardResponseDTO result = adminCardService.getCards(true);
+        when(pageResponseMapper.toPageResponse(
+                eq(cardsPage),
+                ArgumentMatchers.<Function<Card, OneCardResponseDTO>>any()
+        )).thenReturn(responseDto);
+
+        PageResponseDTO<OneCardResponseDTO> result = adminCardService.getCards(request);
 
         assertEquals(responseDto, result);
 
-        verify(cardRepository).findAll();
-        verify(cardRepository, never()).findAllByDeletedAtIsNull();
-        verify(cardMapper).toAdminCardListResponse(cards);
+        verify(cardRepository).findAll(any(Specification.class), any(Pageable.class));
+        verify(pageResponseMapper).toPageResponse(
+                eq(cardsPage),
+                ArgumentMatchers.<Function<Card, OneCardResponseDTO>>any()
+        );
     }
 
     @Test
-    void getCards_includeDeletedFalse_success() {
-        Card card1 = new Card();
-        card1.setId(1L);
+    void getCards_usesPageAndSizeFromRequest() {
+        AdminCardSearchRequestDTO request = new AdminCardSearchRequestDTO();
+        request.setPage(2);
+        request.setSize(5);
 
-        Card card2 = new Card();
-        card2.setId(2L);
+        Page<Card> cardsPage = new PageImpl<>(
+                List.of(),
+                PageRequest.of(2, 5),
+                0
+        );
 
-        List<Card> cards = List.of(card1, card2);
+        PageResponseDTO<OneCardResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        2,
+                        5,
+                        0,
+                        0,
+                        false,
+                        true
+                );
 
-        ListCardResponseDTO responseDto = new ListCardResponseDTO();
+        when(cardRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(cardsPage);
 
-        when(cardRepository.findAllByDeletedAtIsNull()).thenReturn(cards);
-        when(cardMapper.toAdminCardListResponse(cards)).thenReturn(responseDto);
+        when(pageResponseMapper.toPageResponse(
+                eq(cardsPage),
+                ArgumentMatchers.<Function<Card, OneCardResponseDTO>>any()
+        )).thenReturn(responseDto);
 
-        ListCardResponseDTO result = adminCardService.getCards(false);
+        PageResponseDTO<OneCardResponseDTO> result = adminCardService.getCards(request);
 
         assertEquals(responseDto, result);
 
-        verify(cardRepository).findAllByDeletedAtIsNull();
-        verify(cardRepository, never()).findAll();
-        verify(cardMapper).toAdminCardListResponse(cards);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(cardRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertEquals(2, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
+
+        verify(pageResponseMapper).toPageResponse(
+                eq(cardsPage),
+                ArgumentMatchers.<Function<Card, OneCardResponseDTO>>any()
+        );
     }
 
     @Test
@@ -459,33 +524,5 @@ class AdminCardDetailsGeneratorServiceImplTest {
 
         verify(cardFinder).getOneByIdOrThrow(cardId);
         verify(cardRepository, never()).delete(any(Card.class));
-    }
-
-    @Test
-    void getBlockRequestedCards_success() {
-        Card card1 = new Card();
-        card1.setId(1L);
-        card1.setBlockRequested(true);
-
-        Card card2 = new Card();
-        card2.setId(2L);
-        card2.setBlockRequested(true);
-
-        List<Card> cards = List.of(card1, card2);
-
-        ListCardResponseDTO responseDto = new ListCardResponseDTO();
-
-        when(cardRepository.findAllByBlockRequestedTrueAndDeletedAtIsNull())
-                .thenReturn(cards);
-
-        when(cardMapper.toAdminCardListResponse(cards))
-                .thenReturn(responseDto);
-
-        ListCardResponseDTO result = adminCardService.getBlockRequestedCards();
-
-        assertEquals(responseDto, result);
-
-        verify(cardRepository).findAllByBlockRequestedTrueAndDeletedAtIsNull();
-        verify(cardMapper).toAdminCardListResponse(cards);
     }
 }
