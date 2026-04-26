@@ -4,6 +4,7 @@ import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
 import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
+import com.example.bankcards.entity.GeneratedCardDetails;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
@@ -13,9 +14,11 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
 import com.example.bankcards.service.impl.AdminCardServiceImpl;
+import com.example.bankcards.util.CardDetailsGenerator;
 import com.example.bankcards.util.CardNumberEncryptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -36,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AdminCardServiceImplTest {
+class AdminCardDetailsGeneratorServiceImplTest {
 
     @Mock
     private CardRepository cardRepository;
@@ -46,6 +49,9 @@ class AdminCardServiceImplTest {
 
     @Mock
     private CardMapper cardMapper;
+
+    @Mock
+    private CardDetailsGenerator cardDetailsGenerator;
 
     @Mock
     private CardNumberEncryptor encryptor;
@@ -144,46 +150,61 @@ class AdminCardServiceImplTest {
     }
 
     @Test
-    void createCard_success() {
+    void createCard_success_savesGeneratedCardData() {
         long userId = 1L;
 
         CreateCardRequestDTO request = new CreateCardRequestDTO();
         request.setUserId(userId);
-        request.setCardNumber("1111222233334444");
         request.setOwnerName("REGULAR USER");
-        request.setExpirationDate(LocalDate.of(2030, 12, 31));
         request.setInitialBalance(new BigDecimal("10000.00"));
 
         User user = new User();
         user.setId(userId);
 
-        Card savedCard = new Card();
-        savedCard.setId(10L);
-        savedCard.setUser(user);
-        savedCard.setEncryptedCardNumber("encrypted-card-number");
-        savedCard.setCardNumberLast4("4444");
-        savedCard.setOwnerName("REGULAR USER");
-        savedCard.setExpirationDate(request.getExpirationDate());
-        savedCard.setStatus(CardStatus.ACTIVE);
-        savedCard.setBalance(request.getInitialBalance());
-        savedCard.setBlockRequested(false);
+        GeneratedCardDetails generatedCardDetails =
+                new GeneratedCardDetails(
+                        "1111222233334444",
+                        "card-number-hash",
+                        "4444",
+                        LocalDate.of(2031, 4, 26)
+                );
 
         OneCardResponseDTO responseDto = new OneCardResponseDTO();
         responseDto.setId(10L);
 
         when(userFinder.getByIdOrThrow(userId)).thenReturn(user);
+        when(cardDetailsGenerator.generate()).thenReturn(generatedCardDetails);
         when(encryptor.encrypt("1111222233334444")).thenReturn("encrypted-card-number");
-        when(cardRepository.save(any(Card.class))).thenReturn(savedCard);
-        when(cardMapper.toAdminCardResponse(savedCard)).thenReturn(responseDto);
+        when(cardRepository.save(any(Card.class))).thenAnswer(invocation -> {
+            Card card = invocation.getArgument(0);
+            card.setId(10L);
+            return card;
+        });
+        when(cardMapper.toAdminCardResponse(any(Card.class))).thenReturn(responseDto);
 
         OneCardResponseDTO result = adminCardService.createCard(request);
 
         assertEquals(responseDto, result);
 
-        verify(userFinder).getByIdOrThrow(userId);
+        ArgumentCaptor<Card> cardCaptor = ArgumentCaptor.forClass(Card.class);
+        verify(cardRepository).save(cardCaptor.capture());
+
+        Card savedCard = cardCaptor.getValue();
+
+        assertEquals("encrypted-card-number", savedCard.getEncryptedCardNumber());
+        assertEquals("card-number-hash", savedCard.getCardNumberHash());
+        assertEquals("4444", savedCard.getCardNumberLast4());
+        assertEquals("REGULAR USER", savedCard.getOwnerName());
+        assertEquals(LocalDate.of(2031, 4, 26), savedCard.getExpirationDate());
+        assertEquals(CardStatus.ACTIVE, savedCard.getStatus());
+        assertEquals(new BigDecimal("10000.00"), savedCard.getBalance());
+        assertFalse(savedCard.isBlockRequested());
+        assertEquals(user, savedCard.getUser());
+        assertNotNull(savedCard.getCreatedAt());
+        assertNotNull(savedCard.getUpdatedAt());
+
+        verify(cardDetailsGenerator).generate();
         verify(encryptor).encrypt("1111222233334444");
-        verify(cardRepository).save(any(Card.class));
-        verify(cardMapper).toAdminCardResponse(savedCard);
     }
 
     @Test
@@ -192,9 +213,7 @@ class AdminCardServiceImplTest {
 
         CreateCardRequestDTO request = new CreateCardRequestDTO();
         request.setUserId(userId);
-        request.setCardNumber("1111222233334444");
         request.setOwnerName("REGULAR USER");
-        request.setExpirationDate(LocalDate.of(2030, 12, 31));
         request.setInitialBalance(new BigDecimal("10000.00"));
 
         when(userFinder.getByIdOrThrow(userId))
@@ -208,6 +227,37 @@ class AdminCardServiceImplTest {
         assertEquals("Пользователь не найден", exception.getMessage());
 
         verify(userFinder).getByIdOrThrow(userId);
+        verify(cardDetailsGenerator, never()).generate();
+        verify(encryptor, never()).encrypt(any(String.class));
+        verify(cardRepository, never()).save(any(Card.class));
+        verify(cardMapper, never()).toAdminCardResponse(any(Card.class));
+    }
+
+    @Test
+    void createCard_cardDetailsGenerationFailed_throwsConflictException() {
+        long userId = 1L;
+
+        CreateCardRequestDTO request = new CreateCardRequestDTO();
+        request.setUserId(userId);
+        request.setOwnerName("REGULAR USER");
+        request.setInitialBalance(new BigDecimal("10000.00"));
+
+        User user = new User();
+        user.setId(userId);
+
+        when(userFinder.getByIdOrThrow(userId)).thenReturn(user);
+        when(cardDetailsGenerator.generate())
+                .thenThrow(new ConflictException("Не удалось сгенерировать уникальный номер карты"));
+
+        ConflictException exception = assertThrows(
+                ConflictException.class,
+                () -> adminCardService.createCard(request)
+        );
+
+        assertEquals("Не удалось сгенерировать уникальный номер карты", exception.getMessage());
+
+        verify(userFinder).getByIdOrThrow(userId);
+        verify(cardDetailsGenerator).generate();
         verify(encryptor, never()).encrypt(any(String.class));
         verify(cardRepository, never()).save(any(Card.class));
         verify(cardMapper, never()).toAdminCardResponse(any(Card.class));

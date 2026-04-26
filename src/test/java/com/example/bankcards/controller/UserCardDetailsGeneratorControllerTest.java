@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UserCardController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class UserCardControllerTest {
+class UserCardDetailsGeneratorControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

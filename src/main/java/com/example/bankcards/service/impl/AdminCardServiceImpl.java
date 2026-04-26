@@ -4,7 +4,7 @@ import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
 import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
-import com.example.bankcards.entity.GeneratedCardNumber;
+import com.example.bankcards.entity.GeneratedCardDetails;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
@@ -13,8 +13,8 @@ import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.AdminCardService;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
+import com.example.bankcards.util.CardDetailsGenerator;
 import com.example.bankcards.util.CardNumberEncryptor;
-import com.example.bankcards.util.CardNumberUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     private final CardMapper cardMapper;
     private final CardNumberEncryptor encryptor;
     private final CardFinder cardFinder;
-    private final CardNumberUtils cardNumberUtils;
+    private final CardDetailsGenerator cardDetailsGenerator;
 
     @Override
     @Transactional(readOnly = true)
@@ -114,14 +114,15 @@ public class AdminCardServiceImpl implements AdminCardService {
     private Card buildCard(CreateCardRequestDTO request, User user) {
         Instant now = Instant.now();
 
-        GeneratedCardNumber generatedCardNumber = generateUniqueCardNumber();
+        GeneratedCardDetails generatedCardData =
+                cardDetailsGenerator.generate();
 
         Card card = new Card();
-        card.setEncryptedCardNumber(encryptor.encrypt(generatedCardNumber.cardNumber()));
-        card.setCardNumberHash(generatedCardNumber.cardNumberHash());
-        card.setCardNumberLast4(generatedCardNumber.last4());
+        card.setEncryptedCardNumber(encryptor.encrypt(generatedCardData.cardNumber()));
+        card.setCardNumberHash(generatedCardData.cardNumberHash());
+        card.setCardNumberLast4(generatedCardData.last4());
         card.setOwnerName(request.getOwnerName());
-        card.setExpirationDate(request.getExpirationDate());
+        card.setExpirationDate(generatedCardData.expirationDate());
         card.setStatus(CardStatus.ACTIVE);
         card.setBalance(request.getInitialBalance());
         card.setBlockRequested(false);
@@ -130,19 +131,6 @@ public class AdminCardServiceImpl implements AdminCardService {
         card.setUpdatedAt(now);
 
         return card;
-    }
-
-    private GeneratedCardNumber generateUniqueCardNumber() {
-
-        for (int attempt = 0; attempt < 10; attempt++) {
-            String cardNumber = cardNumberUtils.generate();
-            String cardNumberHash = cardNumberUtils.hash(cardNumber);
-            if (!cardRepository.existsByCardNumberHash(cardNumberHash)) {
-                String last4 = cardNumberUtils.extractLast4(cardNumber);
-                return new GeneratedCardNumber(cardNumber, cardNumberHash, last4);
-            }
-        }
-        throw new ConflictException("Не удалось сгенерировать уникальный номер карты");
     }
 
     private void validateCardCanBeBlocked(Card card) {
@@ -168,7 +156,4 @@ public class AdminCardServiceImpl implements AdminCardService {
             throw new ConflictException("Карта уже удалена");
         }
     }
-
-
-
 }

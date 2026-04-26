@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @WebMvcTest(AdminCardController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class AdminCardControllerTest {
+class AdminCardDetailsGeneratorControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -78,9 +78,7 @@ class AdminCardControllerTest {
     void createCard_success() throws Exception {
         CreateCardRequestDTO request = new CreateCardRequestDTO();
         request.setUserId(1L);
-        request.setCardNumber("1111222233334444");
         request.setOwnerName("REGULAR USER");
-        request.setExpirationDate(LocalDate.of(2030, 12, 31));
         request.setInitialBalance(new BigDecimal("10000.00"));
 
         OneCardResponseDTO responseDto = new OneCardResponseDTO();
@@ -102,9 +100,7 @@ class AdminCardControllerTest {
     void createCard_invalidRequest_returns400() throws Exception {
         CreateCardRequestDTO request = new CreateCardRequestDTO();
         request.setUserId(1L);
-        request.setCardNumber(null);
-        request.setOwnerName("REGULAR USER");
-        request.setExpirationDate(LocalDate.of(2030, 12, 31));
+        request.setOwnerName(null);
         request.setInitialBalance(new BigDecimal("10000.00"));
 
         mockMvc.perform(post("/api/admin/cards")
