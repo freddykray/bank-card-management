@@ -33,4 +33,6 @@ public interface CardRepository extends JpaRepository<Card, Long> {
             @Param("date") LocalDate date,
             @Param("status") CardStatus status
     );
+
+    boolean existsByCardNumberHash(String cardNumberHash);
 }
