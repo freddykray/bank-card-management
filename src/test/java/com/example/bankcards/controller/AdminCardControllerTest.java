@@ -1,5 +1,7 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
 import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
@@ -16,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -31,7 +33,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @WebMvcTest(AdminCardController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class AdminCardDetailsGeneratorControllerTest {
+class AdminCardControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,15 +49,36 @@ class AdminCardDetailsGeneratorControllerTest {
 
     @Test
     void getCards_success() throws Exception {
-        ListCardResponseDTO responseDto = new ListCardResponseDTO();
+        PageResponseDTO<OneCardResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        0,
+                        0,
+                        true,
+                        true
+                );
 
-        when(adminCardService.getCards(false)).thenReturn(responseDto);
+        when(adminCardService.getCards(any(AdminCardSearchRequestDTO.class)))
+                .thenReturn(responseDto);
 
         mockMvc.perform(get("/api/admin/cards")
-                        .param("includeDeleted", "false"))
-                .andExpect(status().isOk());
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("status", "ACTIVE")
+                        .param("includeDeleted", "false")
+                        .param("last4", "1234"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.total_elements").value(0))
+                .andExpect(jsonPath("$.total_pages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
 
-        verify(adminCardService).getCards(false);
+        verify(adminCardService).getCards(any(AdminCardSearchRequestDTO.class));
     }
 
     @Test
@@ -151,17 +174,5 @@ class AdminCardDetailsGeneratorControllerTest {
                 .andExpect(status().isOk());
 
         verify(adminCardService).deleteCard(cardId);
-    }
-
-    @Test
-    void getBlockRequestedCards_success() throws Exception {
-        ListCardResponseDTO responseDto = new ListCardResponseDTO();
-
-        when(adminCardService.getBlockRequestedCards()).thenReturn(responseDto);
-
-        mockMvc.perform(get("/api/admin/cards/block-requests"))
-                .andExpect(status().isOk());
-
-        verify(adminCardService).getBlockRequestedCards();
     }
 }
