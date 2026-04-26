@@ -3,7 +3,6 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.security.JwtFilter;
 import com.example.bankcards.service.AdminCardService;

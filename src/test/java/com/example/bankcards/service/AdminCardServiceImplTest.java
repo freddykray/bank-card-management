@@ -3,7 +3,6 @@ package com.example.bankcards.service;
 import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.GeneratedCardDetails;

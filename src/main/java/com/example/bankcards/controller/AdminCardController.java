@@ -3,7 +3,6 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateCardRequestDTO;
-import com.example.bankcards.dto.admin.response.ListCardResponseDTO;
 import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
 import com.example.bankcards.service.AdminCardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,7 +46,7 @@ public class AdminCardController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Список карт успешно получен",
-                    content = @Content(schema = @Schema(implementation = ListCardResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)

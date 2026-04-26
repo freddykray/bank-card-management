@@ -1,5 +1,7 @@
 package com.example.bankcards.service;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminUserSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
@@ -8,6 +10,7 @@ import com.example.bankcards.entity.enums.Role;
 import com.example.bankcards.entity.enums.UserStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.exception.NotFoundException;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.mapstruct.UserMapper;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.service.finder.UserFinder;
@@ -15,23 +18,31 @@ import com.example.bankcards.service.impl.AdminUserServiceImpl;
 
 
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.entity.User;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,27 +65,107 @@ class AdminUserServiceImplTest {
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
 
+    @Mock
+    private PageResponseMapper pageResponseMapper;
+
     @Test
-    void getUsers_success() {
+    void getUsers_success_returnsPageResponse() {
+        AdminUserSearchRequestDTO request = new AdminUserSearchRequestDTO();
+        request.setPage(0);
+        request.setSize(10);
+        request.setRole(Role.USER);
+        request.setStatus(UserStatus.ACTIVE);
+        request.setIncludeDeleted(false);
+
         User user1 = new User();
         user1.setId(1L);
 
         User user2 = new User();
         user2.setId(2L);
 
-        List<User> users = List.of(user1, user2);
+        Page<User> usersPage = new PageImpl<>(
+                List.of(user1, user2),
+                PageRequest.of(0, 10),
+                2
+        );
 
-        ListUserResponseDTO responseDto = new ListUserResponseDTO();
+        PageResponseDTO<OneUserResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        2,
+                        1,
+                        true,
+                        true
+                );
 
-        when(userRepository.findAll()).thenReturn(users);
-        when(userMapper.toListResponseUser(users)).thenReturn(responseDto);
+        when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(usersPage);
 
-        ListUserResponseDTO result = adminUserService.getUsers();
+        when(pageResponseMapper.toPageResponse(
+                eq(usersPage),
+                ArgumentMatchers.<Function<User, OneUserResponseDTO>>any()
+        )).thenReturn(responseDto);
+
+        PageResponseDTO<OneUserResponseDTO> result = adminUserService.getUsers(request);
 
         assertEquals(responseDto, result);
 
-        verify(userRepository).findAll();
-        verify(userMapper).toListResponseUser(users);
+        verify(userRepository).findAll(any(Specification.class), any(Pageable.class));
+        verify(pageResponseMapper).toPageResponse(
+                eq(usersPage),
+                ArgumentMatchers.<Function<User, OneUserResponseDTO>>any()
+        );
+    }
+    @Test
+    void getUsers_usesPageAndSizeFromRequest() {
+        AdminUserSearchRequestDTO request = new AdminUserSearchRequestDTO();
+        request.setPage(2);
+        request.setSize(5);
+
+        Page<User> usersPage = new PageImpl<>(
+                List.of(),
+                PageRequest.of(2, 5),
+                0
+        );
+
+        PageResponseDTO<OneUserResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        2,
+                        5,
+                        0,
+                        0,
+                        false,
+                        true
+                );
+
+        when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(usersPage);
+
+        when(pageResponseMapper.toPageResponse(
+                eq(usersPage),
+                ArgumentMatchers.<Function<User, OneUserResponseDTO>>any()
+        )).thenReturn(responseDto);
+
+        PageResponseDTO<OneUserResponseDTO> result = adminUserService.getUsers(request);
+
+        assertEquals(responseDto, result);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(userRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertEquals(2, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
+
+        verify(pageResponseMapper).toPageResponse(
+                eq(usersPage),
+                ArgumentMatchers.<Function<User, OneUserResponseDTO>>any()
+        );
     }
 
     @Test

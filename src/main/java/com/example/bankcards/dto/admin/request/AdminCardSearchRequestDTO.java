@@ -16,16 +16,16 @@ import java.time.LocalDate;
 @Schema(description = "DTO для поиска и постраничного вывода банковских карт администратором")
 public class AdminCardSearchRequestDTO {
 
-    @Schema(description = "Номер страницы")
+    @Schema(description = "Номер страницы", defaultValue = "0")
     private int page = 0;
 
-    @Schema(description = "Размер страницы")
+    @Schema(description = "Размер страницы", defaultValue = "10")
     private int size = 10;
 
     @Schema(description = "Статус карты")
     private CardStatus status;
 
-    @Schema(description = "Включать ли логически удалённые карты")
+    @Schema(description = "Включать ли логически удалённые карты", defaultValue = "false")
     private Boolean includeDeleted = false;
 
     @Schema(description = "Последние 4 цифры номера карты")

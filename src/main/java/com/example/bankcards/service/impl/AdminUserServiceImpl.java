@@ -1,26 +1,31 @@
 package com.example.bankcards.service.impl;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminUserSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.CreateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
-import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.Role;
 import com.example.bankcards.entity.enums.UserStatus;
 import com.example.bankcards.exception.ConflictException;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.mapstruct.UserMapper;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.service.AdminUserService;
 import com.example.bankcards.service.finder.UserFinder;
+import com.example.bankcards.specification.AdminUserSpecification;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -33,12 +38,22 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserFinder userFinder;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final PageResponseMapper pageResponseMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public ListUserResponseDTO getUsers() {
-        List<User> users = userRepository.findAll();
-        return userMapper.toListResponseUser(users);
+    public PageResponseDTO<OneUserResponseDTO> getUsers(AdminUserSearchRequestDTO request) {
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+
+        Page<User> usersPage = userRepository.findAll(
+                AdminUserSpecification.from(request),
+                pageable
+        );
+
+        return pageResponseMapper.toPageResponse(
+                usersPage,
+                userMapper::toOneResponseUser
+        );
     }
 
     @Override

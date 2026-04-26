@@ -15,13 +15,9 @@ import java.util.Optional;
 @Repository
 public interface CardRepository extends JpaRepository<Card, Long>, JpaSpecificationExecutor<Card> {
 
-    List<Card> findAllByDeletedAtIsNull();
-
     List<Card> findAllByUserIdAndDeletedAtIsNull(long userId);
 
     Optional<Card> findByIdAndUserIdAndDeletedAtIsNull(long cardId, long userId);
-
-    List<Card> findAllByBlockRequestedTrueAndDeletedAtIsNull();
 
     @Query("""
         select c

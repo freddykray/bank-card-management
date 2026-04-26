@@ -1,8 +1,9 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.request.AdminUserSearchRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRequestDTO;
 import com.example.bankcards.dto.admin.request.UpdateUserRoleRequestDTO;
-import com.example.bankcards.dto.admin.response.ListUserResponseDTO;
 import com.example.bankcards.dto.admin.response.OneUserResponseDTO;
 import com.example.bankcards.security.JwtFilter;
 import com.example.bankcards.service.AdminUserService;
@@ -16,6 +17,8 @@ import com.example.bankcards.dto.admin.request.CreateUserRequestDTO;
 import com.example.bankcards.entity.enums.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
+
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,14 +50,37 @@ class AdminUserControllerTest {
 
     @Test
     void getList_success() throws Exception {
-        ListUserResponseDTO responseDto = new ListUserResponseDTO();
+        PageResponseDTO<OneUserResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        0,
+                        0,
+                        true,
+                        true
+                );
 
-        when(adminUserService.getUsers()).thenReturn(responseDto);
+        when(adminUserService.getUsers(any(AdminUserSearchRequestDTO.class)))
+                .thenReturn(responseDto);
 
-        mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/admin/users")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("email", "user@example.com")
+                        .param("role", "USER")
+                        .param("status", "ACTIVE")
+                        .param("includeDeleted", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.total_elements").value(0))
+                .andExpect(jsonPath("$.total_pages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
 
-        verify(adminUserService).getUsers();
+        verify(adminUserService).getUsers(any(AdminUserSearchRequestDTO.class));
     }
 
     @Test
