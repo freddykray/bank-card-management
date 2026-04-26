@@ -113,7 +113,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Карта не найдена", content = @Content)
     })
     public ResponseEntity<OneCardResponseDTO> blockCard(@PathVariable long id) {
-        return new ResponseEntity<>(adminCardService.blockCard(id), HttpStatus.CREATED);
+        return new ResponseEntity<>(adminCardService.blockCard(id), HttpStatus.OK);
     }
 
     @PatchMapping("/{id}/activate")

@@ -47,7 +47,7 @@ public class UserTransferController {
             @ApiResponse(responseCode = "409", description = "Перевод невозможно выполнить", content = @Content)
     })
     public ResponseEntity<OneTransferResponseDTO> createTransfer(@Valid @RequestBody CreateTransferRequestDTO request) {
-        return new ResponseEntity<>(userTransferService.createTransfer(request), HttpStatus.OK);
+        return new ResponseEntity<>(userTransferService.createTransfer(request), HttpStatus.CREATED);
     }
 
     @GetMapping("/my")
