@@ -26,19 +26,9 @@ public class CreateCardRequestDTO {
     @Positive
     private Long userId;
 
-    @Schema(name = "card_number", description = "Полный номер банковской карты")
-    @NotBlank
-    @Pattern(regexp = "\\d{16}")
-    private String cardNumber;
-
     @Schema(name = "owner_name", description = "Имя владельца карты")
     @NotBlank
     private String ownerName;
-
-    @Schema(name = "expiration_date", description = "Дата окончания срока действия карты")
-    @NotNull
-    @Future
-    private LocalDate expirationDate;
 
     @Schema(name = "initial_balance", description = "Начальный баланс карты")
     @NotNull
