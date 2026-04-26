@@ -1,5 +1,8 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.admin.response.OneCardResponseDTO;
+import com.example.bankcards.dto.user.request.UserCardSearchRequestDTO;
 import com.example.bankcards.dto.user.response.CardBalanceResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardListResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardOneResponseDTO;
@@ -35,12 +38,14 @@ public class UserCardController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Список карт успешно получен",
-                    content = @Content(schema = @Schema(implementation = UserCardListResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content)
     })
-    public ResponseEntity<UserCardListResponseDTO> getListCards() {
-        return new ResponseEntity<>(userCardService.getMyCards(), HttpStatus.OK);
+    public ResponseEntity<PageResponseDTO<UserCardOneResponseDTO>> getMyCards(
+             UserCardSearchRequestDTO request
+    ) {
+        return ResponseEntity.ok(userCardService.getMyCards(request));
     }
 
     @GetMapping("/{id}")

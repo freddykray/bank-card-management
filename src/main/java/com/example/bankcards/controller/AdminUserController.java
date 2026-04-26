@@ -41,7 +41,7 @@ public class AdminUserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Список пользователей успешно получен",
-                    content = @Content(schema = @Schema(implementation = ListUserResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав доступа", content = @Content)

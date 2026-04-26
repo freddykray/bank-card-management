@@ -1,7 +1,8 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.user.request.CreateTransferRequestDTO;
-import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
+import com.example.bankcards.dto.user.request.UserTransferSearchRequestDTO;
 import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
 import com.example.bankcards.service.UserTransferService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,12 +60,14 @@ public class UserTransferController {
             @ApiResponse(
                     responseCode = "200",
                     description = "История переводов успешно получена",
-                    content = @Content(schema = @Schema(implementation = ListTransferResponseDTO.class))
+                    content = @Content(schema = @Schema(implementation = PageResponseDTO.class))
             ),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован", content = @Content)
     })
-    public ResponseEntity<ListTransferResponseDTO> getMyListTransfers() {
-        return new ResponseEntity<>(userTransferService.getMyTransfers(), HttpStatus.OK);
+    public ResponseEntity<PageResponseDTO<OneTransferResponseDTO>> getMyTransfers(
+            UserTransferSearchRequestDTO request
+    ) {
+        return ResponseEntity.ok(userTransferService.getMyTransfers(request));
     }
 
     @GetMapping("/my/{id}")

@@ -1,5 +1,7 @@
 package com.example.bankcards.controller;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.user.request.UserCardSearchRequestDTO;
 import com.example.bankcards.dto.user.response.CardBalanceResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardListResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardOneResponseDTO;
@@ -12,6 +14,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -34,14 +39,38 @@ class UserCardControllerTest {
 
     @Test
     void getMyCards_success() throws Exception {
-        UserCardListResponseDTO responseDto = new UserCardListResponseDTO();
+        PageResponseDTO<UserCardOneResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        0,
+                        0,
+                        true,
+                        true
+                );
 
-        when(userCardService.getMyCards()).thenReturn(responseDto);
+        when(userCardService.getMyCards(any(UserCardSearchRequestDTO.class)))
+                .thenReturn(responseDto);
 
-        mockMvc.perform(get("/api/cards/my"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/cards/my")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("status", "ACTIVE")
+                        .param("last4", "1234")
+                        .param("balanceFrom", "1000")
+                        .param("balanceTo", "5000")
+                        .param("blockRequested", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.total_elements").value(0))
+                .andExpect(jsonPath("$.total_pages").value(0))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
 
-        verify(userCardService).getMyCards();
+        verify(userCardService).getMyCards(any(UserCardSearchRequestDTO.class));
     }
 
     @Test

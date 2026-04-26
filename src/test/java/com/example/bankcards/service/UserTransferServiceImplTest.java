@@ -1,7 +1,8 @@
 package com.example.bankcards.service;
 
+import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.user.request.CreateTransferRequestDTO;
-import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
+import com.example.bankcards.dto.user.request.UserTransferSearchRequestDTO;
 import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
@@ -10,6 +11,7 @@ import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.entity.enums.TransferStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.exception.NotFoundException;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.mapstruct.TransferMapper;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.CurrentUserService;
@@ -17,17 +19,26 @@ import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.impl.UserTransferServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -49,6 +60,9 @@ public class UserTransferServiceImplTest {
 
     @InjectMocks
     private UserTransferServiceImpl userTransferService;
+
+    @Mock
+    private PageResponseMapper pageResponseMapper;
 
     @Test
     void createTransfer_success() {
@@ -248,30 +262,114 @@ public class UserTransferServiceImplTest {
     }
 
     @Test
-    void getMyTransfers_success() {
-        long currentUserId = 1L;
+    void getMyTransfers_success_returnsPageResponse() {
+        UserTransferSearchRequestDTO request = new UserTransferSearchRequestDTO();
+        request.setPage(0);
+        request.setSize(10);
+        request.setStatus(TransferStatus.SUCCESS);
+        request.setFromCardLast4("1234");
+        request.setToCardLast4("5678");
+
+        long userId = 1L;
 
         Transfer transfer1 = new Transfer();
-        transfer1.setId(100L);
+        transfer1.setId(1L);
 
         Transfer transfer2 = new Transfer();
-        transfer2.setId(101L);
+        transfer2.setId(2L);
 
-        List<Transfer> transfers = List.of(transfer1, transfer2);
+        Page<Transfer> transfersPage = new PageImpl<>(
+                List.of(transfer1, transfer2),
+                PageRequest.of(0, 10),
+                2
+        );
 
-        ListTransferResponseDTO responseDto = new ListTransferResponseDTO();
+        PageResponseDTO<OneTransferResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        0,
+                        10,
+                        2,
+                        1,
+                        true,
+                        true
+                );
 
-        when(currentUserService.getCurrentUserId()).thenReturn(currentUserId);
-        when(transferRepository.findAllByUserId(currentUserId)).thenReturn(transfers);
-        when(transferMapper.toTransferListResponse(transfers)).thenReturn(responseDto);
+        when(currentUserService.getCurrentUserId()).thenReturn(userId);
 
-        ListTransferResponseDTO result = userTransferService.getMyTransfers();
+        when(transferRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(transfersPage);
+
+        when(pageResponseMapper.toPageResponse(
+                eq(transfersPage),
+                ArgumentMatchers.<Function<Transfer, OneTransferResponseDTO>>any()
+        )).thenReturn(responseDto);
+
+        PageResponseDTO<OneTransferResponseDTO> result = userTransferService.getMyTransfers(request);
 
         assertEquals(responseDto, result);
 
         verify(currentUserService).getCurrentUserId();
-        verify(transferRepository).findAllByUserId(currentUserId);
-        verify(transferMapper).toTransferListResponse(transfers);
+        verify(transferRepository).findAll(any(Specification.class), any(Pageable.class));
+        verify(pageResponseMapper).toPageResponse(
+                eq(transfersPage),
+                ArgumentMatchers.<Function<Transfer, OneTransferResponseDTO>>any()
+        );
+    }
+
+    @Test
+    void getMyTransfers_usesPageAndSizeFromRequest() {
+        UserTransferSearchRequestDTO request = new UserTransferSearchRequestDTO();
+        request.setPage(2);
+        request.setSize(5);
+
+        long userId = 1L;
+
+        Page<Transfer> transfersPage = new PageImpl<>(
+                List.of(),
+                PageRequest.of(2, 5),
+                0
+        );
+
+        PageResponseDTO<OneTransferResponseDTO> responseDto =
+                new PageResponseDTO<>(
+                        List.of(),
+                        2,
+                        5,
+                        0,
+                        0,
+                        false,
+                        true
+                );
+
+        when(currentUserService.getCurrentUserId()).thenReturn(userId);
+
+        when(transferRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(transfersPage);
+
+        when(pageResponseMapper.toPageResponse(
+                eq(transfersPage),
+                ArgumentMatchers.<Function<Transfer, OneTransferResponseDTO>>any()
+        )).thenReturn(responseDto);
+
+        PageResponseDTO<OneTransferResponseDTO> result = userTransferService.getMyTransfers(request);
+
+        assertEquals(responseDto, result);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(transferRepository).findAll(any(Specification.class), pageableCaptor.capture());
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertEquals(2, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
+
+        verify(currentUserService).getCurrentUserId();
+        verify(pageResponseMapper).toPageResponse(
+                eq(transfersPage),
+                ArgumentMatchers.<Function<Transfer, OneTransferResponseDTO>>any()
+        );
     }
 
     @Test

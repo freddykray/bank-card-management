@@ -1,7 +1,8 @@
 package com.example.bankcards.service.impl;
 
+import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.user.request.CreateTransferRequestDTO;
-import com.example.bankcards.dto.user.response.ListTransferResponseDTO;
+import com.example.bankcards.dto.user.request.UserTransferSearchRequestDTO;
 import com.example.bankcards.dto.user.response.OneTransferResponseDTO;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
@@ -9,19 +10,23 @@ import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.entity.enums.TransferStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.exception.NotFoundException;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.mapstruct.TransferMapper;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.CurrentUserService;
 import com.example.bankcards.service.UserTransferService;
 import com.example.bankcards.service.finder.CardFinder;
+import com.example.bankcards.specification.UserTransferSpecification;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -33,6 +38,7 @@ public class UserTransferServiceImpl implements UserTransferService {
     private final TransferMapper transferMapper;
     private final CardFinder cardFinder;
     private final CurrentUserService currentUserService;
+    private final PageResponseMapper pageResponseMapper;
 
     @Override
     @Transactional
@@ -64,10 +70,20 @@ public class UserTransferServiceImpl implements UserTransferService {
 
     @Override
     @Transactional(readOnly = true)
-    public ListTransferResponseDTO getMyTransfers() {
+    public PageResponseDTO<OneTransferResponseDTO> getMyTransfers(UserTransferSearchRequestDTO request) {
         long currentUserId = currentUserService.getCurrentUserId();
-        List<Transfer> transfers = transferRepository.findAllByUserId(currentUserId);
-        return transferMapper.toTransferListResponse(transfers);
+
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+
+        Page<Transfer> transfersPage = transferRepository.findAll(
+                UserTransferSpecification.from(currentUserId, request),
+                pageable
+        );
+
+        return pageResponseMapper.toPageResponse(
+                transfersPage,
+                transferMapper::toTransferResponse
+        );
     }
 
     @Override

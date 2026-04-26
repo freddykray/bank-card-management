@@ -1,5 +1,7 @@
 package com.example.bankcards.service.impl;
 
+import com.example.bankcards.dto.PageResponseDTO;
+import com.example.bankcards.dto.user.request.UserCardSearchRequestDTO;
 import com.example.bankcards.dto.user.response.CardBalanceResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardListResponseDTO;
 import com.example.bankcards.dto.user.response.UserCardOneResponseDTO;
@@ -8,10 +10,15 @@ import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.exception.NotFoundException;
 import com.example.bankcards.mapstruct.CardMapper;
+import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.security.CurrentUserService;
 import com.example.bankcards.service.UserCardService;
+import com.example.bankcards.specification.UserCardSpecification;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +32,24 @@ public class UserCardServiceImpl implements UserCardService {
     private final CardRepository cardRepository;
     private final CardMapper cardMapper;
     private final CurrentUserService currentUserService;
+    private final PageResponseMapper pageResponseMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public UserCardListResponseDTO getMyCards() {
-        long userId = getUserIdFromContext();
-        List<Card> cardList = cardRepository.findAllByUserIdAndDeletedAtIsNull(userId);
-        return cardMapper.toUserCardListResponse(cardList);
+    public PageResponseDTO<UserCardOneResponseDTO> getMyCards(UserCardSearchRequestDTO request) {
+        long userId = currentUserService.getCurrentUserId();
+
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+
+        Page<Card> cardsPage = cardRepository.findAll(
+                UserCardSpecification.from(userId, request),
+                pageable
+        );
+
+        return pageResponseMapper.toPageResponse(
+                cardsPage,
+                cardMapper::toUserCardOneResponse
+        );
     }
 
     @Override
