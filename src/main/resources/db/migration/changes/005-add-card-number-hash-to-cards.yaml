@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-add-card-number-hash-to-cards
+      author: freddykray
+      changes:
+        - addColumn:
+            tableName: cards
+            columns:
+              - column:
+                  name: card_number_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: cards
+            columnNames: card_number_hash
+            constraintName: uq_cards_card_number_hash

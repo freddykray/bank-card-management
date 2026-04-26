@@ -36,6 +36,9 @@ public class Card {
     @Column(nullable = false)
     private String cardNumberLast4;
 
+    @Column(name = "card_number_hash", nullable = false, unique = true)
+    private String cardNumberHash;
+
     @Column(nullable = false)
     private String ownerName;
 
