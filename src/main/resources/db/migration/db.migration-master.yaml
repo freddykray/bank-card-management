@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/migration/changes/003-create-transfers-table.yaml
   - include:
       file: db/migration/changes/004-insert-default-admin.yaml
+  - include:
+      file: db/migration/changes/005-add-card-number-hash-to-cards.yaml

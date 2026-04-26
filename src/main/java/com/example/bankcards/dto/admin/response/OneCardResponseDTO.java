@@ -55,4 +55,7 @@ public class OneCardResponseDTO {
 
     @Schema(name = "updated_at", description = "Дата последнего обновления карты")
     private Instant updatedAt;
+
+    @Schema(name = "deleted_at", description = "Дата логического удаления")
+    private Instant deletedAt;
 }

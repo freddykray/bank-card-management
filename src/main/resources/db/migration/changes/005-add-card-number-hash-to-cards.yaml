@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 004-add-card-number-hash-to-cards
+      id: 005-add-card-number-hash-to-cards
       author: freddykray
       changes:
         - addColumn:
