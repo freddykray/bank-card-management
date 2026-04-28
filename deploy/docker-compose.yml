@@ -43,7 +43,7 @@ services:
 
   app:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: bank-card-app
     depends_on:
