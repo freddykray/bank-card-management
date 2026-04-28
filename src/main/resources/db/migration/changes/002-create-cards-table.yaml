@@ -55,6 +55,13 @@ databaseChangeLog:
                     nullable: false
 
               - column:
+                  name: card_number_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+
+              - column:
                   name: block_requested
                   type: BOOLEAN
                   defaultValueBoolean: false
