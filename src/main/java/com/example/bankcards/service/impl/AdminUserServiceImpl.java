@@ -29,6 +29,18 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Реализация административного сервиса для управления пользователями.
+ *
+ * <p>Сервис содержит бизнес-логику для административных операций:
+ * просмотр пользователей с фильтрацией и пагинацией, получение пользователя
+ * по идентификатору, создание пользователя, обновление данных, изменение роли,
+ * блокировка, активация и логическое удаление.</p>
+ *
+ * <p>Сервис также отвечает за проверку уникальности email и телефона,
+ * кодирование пароля при создании пользователя и контроль допустимых
+ * изменений статуса и роли.</p>
+ */
 @AllArgsConstructor
 @Service
 @Slf4j
@@ -40,6 +52,16 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMapper userMapper;
     private final PageResponseMapper pageResponseMapper;
 
+    /**
+     * Возвращает постраничный список пользователей для администратора.
+     *
+     * <p>Метод поддерживает фильтрацию через {@link AdminUserSearchRequestDTO}.
+     * Фильтры преобразуются в {@link AdminUserSpecification}, после чего
+     * применяются к запросу в базу данных вместе с параметрами пагинации.</p>
+     *
+     * @param request параметры поиска, фильтрации и пагинации
+     * @return постраничный ответ со списком пользователей
+     */
     @Override
     @Transactional(readOnly = true)
     public PageResponseDTO<OneUserResponseDTO> getUsers(AdminUserSearchRequestDTO request) {
@@ -56,6 +78,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         );
     }
 
+    /**
+     * Возвращает пользователя по идентификатору.
+     *
+     * <p>Если пользователь не найден, {@link UserFinder} выбрасывает исключение.</p>
+     *
+     * @param id идентификатор пользователя
+     * @return DTO с данными пользователя
+     */
     @Override
     @Transactional(readOnly = true)
     public OneUserResponseDTO getUserById(long id) {
@@ -63,6 +93,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(user);
     }
 
+    /**
+     * Создаёт нового пользователя.
+     *
+     * <p>Перед созданием проверяется уникальность email и телефона.
+     * Пароль сохраняется только в закодированном виде.</p>
+     *
+     * @param request DTO с данными для создания пользователя
+     * @return DTO созданного пользователя
+     */
     @Override
     @Transactional
     public OneUserResponseDTO createUser(CreateUserRequestDTO request) {
@@ -77,6 +116,18 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(savedUser);
     }
 
+    /**
+     * Частично обновляет данные пользователя.
+     *
+     * <p>Если поле в запросе не передано, оно не изменяется.
+     * Если новое значение совпадает со старым, обновление не выполняется.
+     * Проверка уникальности email и телефона выполняется только тогда,
+     * когда соответствующее значение действительно меняется.</p>
+     *
+     * @param id идентификатор пользователя
+     * @param request DTO с новыми данными пользователя
+     * @return DTO обновлённого пользователя
+     */
     @Override
     @Transactional
     public OneUserResponseDTO updateUser(long id, UpdateUserRequestDTO request) {
@@ -98,6 +149,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(user);
     }
 
+    /**
+     * Обновляет роль пользователя.
+     *
+     * <p>Перед изменением проверяется, что пользователь не удалён
+     * и что новая роль отличается от текущей.</p>
+     *
+     * @param id идентификатор пользователя
+     * @param request DTO с новой ролью
+     * @return DTO пользователя с обновлённой ролью
+     */
     @Override
     @Transactional
     public OneUserResponseDTO updateUserRole(long id, UpdateUserRoleRequestDTO request) {
@@ -113,6 +174,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(user);
     }
 
+    /**
+     * Блокирует пользователя.
+     *
+     * <p>Перед блокировкой проверяется, что пользователь не удалён
+     * и ещё не находится в статусе {@link UserStatus#BLOCKED}.</p>
+     *
+     * @param id идентификатор пользователя
+     * @return DTO заблокированного пользователя
+     */
     @Override
     @Transactional
     public OneUserResponseDTO blockUser(long id) {
@@ -128,6 +198,15 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(user);
     }
 
+    /**
+     * Активирует пользователя.
+     *
+     * <p>Перед активацией проверяется, что пользователь не удалён
+     * и ещё не находится в статусе {@link UserStatus#ACTIVE}.</p>
+     *
+     * @param id идентификатор пользователя
+     * @return DTO активированного пользователя
+     */
     @Override
     @Transactional
     public OneUserResponseDTO activateUser(long id) {
@@ -143,6 +222,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         return userMapper.toOneResponseUser(user);
     }
 
+    /**
+     * Логически удаляет пользователя.
+     *
+     * <p>Физическое удаление из базы данных не выполняется.
+     * Вместо этого заполняется поле {@code deletedAt}.</p>
+     *
+     * @param id идентификатор пользователя
+     */
     @Override
     @Transactional
     public void deleteUser(long id) {
@@ -153,6 +240,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("Пользователь логически удален: userId={}", user.getId());
     }
 
+    /**
+     * Создаёт entity пользователя перед сохранением.
+     *
+     * <p>Метод маппит данные из DTO, кодирует пароль, устанавливает
+     * начальный статус {@link UserStatus#ACTIVE}, а также даты создания
+     * и обновления.</p>
+     *
+     * @param request DTO создания пользователя
+     * @return заполненная entity пользователя
+     */
     private User buildUser(CreateUserRequestDTO request) {
         Instant now = Instant.now();
 
@@ -165,6 +262,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         return user;
     }
 
+    /**
+     * Проверяет, что пользователя можно активировать.
+     *
+     * @param user пользователь для проверки
+     * @throws ConflictException если пользователь удалён или уже активирован
+     */
     private void validateUserCanBeActivated(User user) {
         checkUserNotDeleted(user);
 
@@ -173,6 +276,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    /**
+     * Проверяет, что пользователя можно заблокировать.
+     *
+     * @param user пользователь для проверки
+     * @throws ConflictException если пользователь удалён или уже заблокирован
+     */
     private void validateUserCanBeBlocked(User user) {
         checkUserNotDeleted(user);
 
@@ -181,6 +290,13 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    /**
+     * Проверяет, что роль пользователя можно изменить.
+     *
+     * @param user пользователь для проверки
+     * @param newRole новая роль
+     * @throws ConflictException если пользователь удалён или у него уже установлена эта роль
+     */
     private void validateUserCanUpdateRole(User user, Role newRole) {
         checkUserNotDeleted(user);
 
@@ -189,12 +305,27 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    /**
+     * Проверяет, что пользователь не был логически удалён.
+     *
+     * @param user пользователь для проверки
+     * @throws ConflictException если пользователь уже удалён
+     */
     private void checkUserNotDeleted(User user) {
         if (user.getDeletedAt() != null) {
             throw new ConflictException("Пользователь уже удалён");
         }
     }
 
+    /**
+     * Проверяет уникальность email и телефона при обновлении пользователя.
+     *
+     * <p>Проверка выполняется только для тех полей, которые переданы
+     * и отличаются от текущих значений пользователя.</p>
+     *
+     * @param request DTO обновления пользователя
+     * @param user текущий пользователь
+     */
     private void validateUniqueFieldsForUpdate(UpdateUserRequestDTO request, User user) {
         if (isChanged(request.getEmail(), user.getEmail()) && isEmailExists(request.getEmail())) {
             throw new ConflictException("Пользователь с таким email уже существует");
@@ -205,6 +336,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    /**
+     * Обновляет поле entity только если новое значение передано
+     * и отличается от старого.
+     *
+     * @param newValue новое значение
+     * @param oldValue текущее значение
+     * @param setter setter для обновляемого поля
+     * @param <T> тип значения
+     * @return {@code true}, если поле было изменено
+     */
     private <T> boolean updateIfChanged(T newValue, T oldValue, Consumer<T> setter) {
         if (isChanged(newValue, oldValue)) {
             setter.accept(newValue);
@@ -213,11 +354,24 @@ public class AdminUserServiceImpl implements AdminUserService {
         return false;
     }
 
+    /**
+     * Проверяет, что новое значение передано и отличается от старого.
+     *
+     * @param newValue новое значение
+     * @param oldValue старое значение
+     * @return {@code true}, если значение изменилось
+     */
     private boolean isChanged(Object newValue, Object oldValue) {
         return newValue != null && !Objects.equals(newValue, oldValue);
-
     }
 
+    /**
+     * Проверяет уникальность email и телефона при создании пользователя.
+     *
+     * @param email email нового пользователя
+     * @param phone телефон нового пользователя
+     * @throws ConflictException если email или телефон уже используются
+     */
     private void validateUniqueFieldsForCreate(String email, String phone) {
         if (isEmailExists(email)) {
             log.warn("Попытка создать пользователя с уже занятым email");

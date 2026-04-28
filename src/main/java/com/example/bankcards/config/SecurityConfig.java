@@ -17,7 +17,18 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Основная конфигурация Spring Security.
+ *
+ * <p>Класс настраивает правила доступа к endpoint'ам, JWT-фильтр,
+ * stateless-режим работы приложения, обработчики ошибок авторизации
+ * и провайдер аутентификации пользователей.</p>
+ *
+ * <p>Приложение использует JWT-аутентификацию, поэтому HTTP-сессии
+ * не создаются и не хранятся на сервере.</p>
+ */
 @Configuration
 @AllArgsConstructor
 public class SecurityConfig {
@@ -27,10 +38,28 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final CustomUserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final UrlBasedCorsConfigurationSource corsConfigurationSource;
 
+    /**
+     * Настраивает цепочку фильтров безопасности.
+     *
+     * <p>В конфигурации включается CORS, отключается CSRF, устанавливается
+     * stateless-режим сессий, подключаются обработчики ошибок авторизации
+     * и задаются правила доступа к endpoint'ам.</p>
+     *
+     * <p>JWT-фильтр добавляется перед стандартным
+     * {@link UsernamePasswordAuthenticationFilter}, чтобы пользователь
+     * мог быть аутентифицирован по Bearer-токену до выполнения основных
+     * security-проверок.</p>
+     *
+     * @param http объект настройки HTTP security
+     * @return настроенная цепочка security-фильтров
+     * @throws Exception если произошла ошибка при настройке Spring Security
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -50,6 +79,15 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Создаёт provider для аутентификации пользователей через базу данных.
+     *
+     * <p>{@link DaoAuthenticationProvider} использует
+     * {@link CustomUserDetailsService} для загрузки пользователя по email
+     * и {@link PasswordEncoder} для проверки пароля.</p>
+     *
+     * @return provider аутентификации
+     */
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(customUserDetailsService);
@@ -57,6 +95,16 @@ public class SecurityConfig {
         return provider;
     }
 
+    /**
+     * Возвращает {@link AuthenticationManager}, используемый при login-запросе.
+     *
+     * <p>Через этот manager сервис аутентификации проверяет email и пароль
+     * пользователя перед выдачей JWT-токенов.</p>
+     *
+     * @param configuration конфигурация аутентификации Spring Security
+     * @return authentication manager
+     * @throws Exception если Spring Security не смог создать AuthenticationManager
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();

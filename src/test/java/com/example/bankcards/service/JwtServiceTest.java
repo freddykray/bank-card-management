@@ -1,24 +1,37 @@
 package com.example.bankcards.service;
 
+import com.example.bankcards.entity.Token;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.Role;
 import com.example.bankcards.entity.enums.UserStatus;
+import com.example.bankcards.repository.TokenRepository;
 import com.example.bankcards.security.CustomUserDetails;
 import com.example.bankcards.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.Instant;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
 
+    @Mock
+    private TokenRepository tokenRepository;
+
+    @InjectMocks
     private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService();
-
         ReflectionTestUtils.setField(
                 jwtService,
                 "secretKey",
@@ -29,6 +42,12 @@ class JwtServiceTest {
                 jwtService,
                 "accessTokenExpiration",
                 3600000L
+        );
+
+        ReflectionTestUtils.setField(
+                jwtService,
+                "refreshTokenExpiration",
+                604800000L
         );
     }
 
@@ -41,6 +60,17 @@ class JwtServiceTest {
         user.setStatus(UserStatus.ACTIVE);
 
         return user;
+    }
+
+    private Token createToken(String accessToken, String refreshToken, User user) {
+        Token token = new Token();
+        token.setAccessToken(accessToken);
+        token.setRefreshToken(refreshToken);
+        token.setLoggedOut(false);
+        token.setExpiresAt(Instant.now().plusSeconds(3600));
+        token.setUser(user);
+
+        return token;
     }
 
     @Test
@@ -65,7 +95,7 @@ class JwtServiceTest {
     }
 
     @Test
-    void isValid_validToken_returnsTrue() {
+    void isValid_validAccessToken_returnsTrue() {
         User user = createUser("user@example.com");
 
         String token = jwtService.generateAccessToken(user);
@@ -87,6 +117,112 @@ class JwtServiceTest {
         CustomUserDetails anotherUserDetails = new CustomUserDetails(anotherUser);
 
         boolean result = jwtService.isValid(token, anotherUserDetails);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void generateRefreshToken_success() {
+        User user = createUser("user@example.com");
+
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        assertNotNull(refreshToken);
+        assertFalse(refreshToken.isBlank());
+    }
+
+    @Test
+    void extractEmail_fromRefreshToken_success() {
+        User user = createUser("user@example.com");
+
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        String email = jwtService.extractEmail(refreshToken);
+
+        assertEquals("user@example.com", email);
+    }
+
+    @Test
+    void isValidRefresh_validRefreshToken_returnsTrue() {
+        User user = createUser("user@example.com");
+
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        Token storedToken = createToken(accessToken, refreshToken, user);
+
+        when(tokenRepository.findByRefreshToken(refreshToken))
+                .thenReturn(Optional.of(storedToken));
+
+        boolean result = jwtService.isValidRefresh(refreshToken, user);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isValidRefresh_tokenNotFoundInDatabase_returnsFalse() {
+        User user = createUser("user@example.com");
+
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        when(tokenRepository.findByRefreshToken(refreshToken))
+                .thenReturn(Optional.empty());
+
+        boolean result = jwtService.isValidRefresh(refreshToken, user);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isValidRefresh_revokedToken_returnsFalse() {
+        User user = createUser("user@example.com");
+
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        Token storedToken = createToken(accessToken, refreshToken, user);
+        storedToken.setLoggedOut(true);
+
+        when(tokenRepository.findByRefreshToken(refreshToken))
+                .thenReturn(Optional.of(storedToken));
+
+        boolean result = jwtService.isValidRefresh(refreshToken, user);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isValidRefresh_expiredStoredToken_returnsFalse() {
+        User user = createUser("user@example.com");
+
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        Token storedToken = createToken(accessToken, refreshToken, user);
+        storedToken.setExpiresAt(Instant.now().minusSeconds(60));
+
+        when(tokenRepository.findByRefreshToken(refreshToken))
+                .thenReturn(Optional.of(storedToken));
+
+        boolean result = jwtService.isValidRefresh(refreshToken, user);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isValidRefresh_wrongUser_returnsFalse() {
+        User tokenOwner = createUser("user@example.com");
+        User anotherUser = createUser("other@example.com");
+
+        String accessToken = jwtService.generateAccessToken(tokenOwner);
+        String refreshToken = jwtService.generateRefreshToken(tokenOwner);
+
+        Token storedToken = createToken(accessToken, refreshToken, tokenOwner);
+
+        when(tokenRepository.findByRefreshToken(refreshToken))
+                .thenReturn(Optional.of(storedToken));
+
+        boolean result = jwtService.isValidRefresh(refreshToken, anotherUser);
 
         assertFalse(result);
     }
