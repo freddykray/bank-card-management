@@ -1,6 +1,12 @@
 app:
   crypto:
     card-secret-key: ${CARD_SECRET_KEY:change-this-card-secret-key-32-char}
+  kafka:
+    topics:
+      card-created: card-created-events
+    outbox:
+      publisher:
+        fixed-delay-ms: 5000
 
   jwt:
     secret: ${JWT_SECRET:change-this-jwt-secret-key-minimum-64-chars}
@@ -8,8 +14,6 @@ app:
       expiration: ${JWT_ACCESS_EXPIRATION:3600000}
     refresh:
       expiration: ${JWT_REFRESH_EXPIRATION:604800000}
-
-
 
   cors:
     allowed-origins:
@@ -24,6 +28,16 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 10
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 30000
+        request.timeout.ms: 10000
+        max.in.flight.requests.per.connection: 5
 
   jpa:
     hibernate:

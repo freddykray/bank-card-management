@@ -15,7 +15,7 @@ import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
-import com.example.bankcards.service.impl.AdminCardServiceImpl;
+import com.example.bankcards.service.impl.admin.AdminCardServiceImpl;
 import com.example.bankcards.util.CardDetailsGenerator;
 import com.example.bankcards.util.CardNumberEncryptor;
 import org.junit.jupiter.api.Test;

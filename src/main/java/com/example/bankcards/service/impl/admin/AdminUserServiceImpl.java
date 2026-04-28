@@ -1,4 +1,4 @@
-package com.example.bankcards.service.impl;
+package com.example.bankcards.service.impl.admin;
 
 import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.admin.request.AdminUserSearchRequestDTO;

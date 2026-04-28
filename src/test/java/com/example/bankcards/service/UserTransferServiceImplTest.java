@@ -16,7 +16,7 @@ import com.example.bankcards.mapstruct.TransferMapper;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.security.CurrentUserService;
 import com.example.bankcards.service.finder.CardFinder;
-import com.example.bankcards.service.impl.UserTransferServiceImpl;
+import com.example.bankcards.service.impl.user.UserTransferServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

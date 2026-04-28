@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-change-outbox-payload-to-text
+      author: fedor
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: outbox_events
+        - columnExists:
+            tableName: outbox_events
+            columnName: payload
+
+      changes:
+        - modifyDataType:
+            tableName: outbox_events
+            columnName: payload
+            newDataType: TEXT

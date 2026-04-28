@@ -180,6 +180,7 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(refreshToken)
                 .loggedOut(false)
                 .expiresAt(jwtService.extractExpiration(refreshToken).toInstant())
+                .createdAt(Instant.now())
                 .user(user)
                 .build();
 

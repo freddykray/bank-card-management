@@ -1,4 +1,4 @@
-package com.example.bankcards.service.impl;
+package com.example.bankcards.service.impl.admin;
 
 import com.example.bankcards.dto.PageResponseDTO;
 import com.example.bankcards.dto.admin.request.AdminCardSearchRequestDTO;
@@ -8,11 +8,13 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.GeneratedCardDetails;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
+import com.example.bankcards.event.CardCreatedEvent;
 import com.example.bankcards.exception.ConflictException;
 import com.example.bankcards.mapstruct.CardMapper;
 import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.service.AdminCardService;
+import com.example.bankcards.service.OutboxEventService;
 import com.example.bankcards.service.finder.CardFinder;
 import com.example.bankcards.service.finder.UserFinder;
 import com.example.bankcards.specification.AdminCardSpecification;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Реализация административного сервиса для управления банковскими картами.
@@ -52,6 +55,7 @@ public class AdminCardServiceImpl implements AdminCardService {
     private final CardFinder cardFinder;
     private final CardDetailsGenerator cardDetailsGenerator;
     private final PageResponseMapper pageResponseMapper;
+    private final OutboxEventService outboxEventService;
 
     /**
      * Возвращает постраничный список банковских карт для администратора.
@@ -112,6 +116,15 @@ public class AdminCardServiceImpl implements AdminCardService {
         Card card = buildCard(request, user);
 
         Card savedCard = cardRepository.save(card);
+
+        CardCreatedEvent event = new CardCreatedEvent(
+                UUID.randomUUID(),
+                savedCard.getId(),
+                user.getId(),
+                request.getInitialBalance(),
+                Instant.now()
+        );
+        outboxEventService.saveCardCreatedEvent(event);
 
         log.info("Карта создана: cardId={}, userId={}, last4={}",
                 savedCard.getId(),

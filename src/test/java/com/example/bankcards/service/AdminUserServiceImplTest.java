@@ -14,7 +14,7 @@ import com.example.bankcards.mapstruct.PageResponseMapper;
 import com.example.bankcards.mapstruct.UserMapper;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.service.finder.UserFinder;
-import com.example.bankcards.service.impl.AdminUserServiceImpl;
+import com.example.bankcards.service.impl.admin.AdminUserServiceImpl;
 
 
 import org.junit.jupiter.api.extension.ExtendWith;
