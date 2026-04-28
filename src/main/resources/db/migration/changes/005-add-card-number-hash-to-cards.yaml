@@ -2,6 +2,12 @@ databaseChangeLog:
   - changeSet:
       id: 005-add-card-number-hash-to-cards
       author: freddykray
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: card
+              columnName: card_number_hash
       changes:
         - addColumn:
             tableName: cards

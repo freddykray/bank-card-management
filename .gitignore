@@ -1,2 +1,6 @@
 .idea/
 target/
+src/main/resources/application.yml
+.env
+.env.*
+!.env.example
