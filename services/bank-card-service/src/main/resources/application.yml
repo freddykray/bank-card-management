@@ -4,6 +4,7 @@ app:
   kafka:
     topics:
       card-created: card-created-events
+      balance-changed: balance-changed-events
     outbox:
       publisher:
         fixed-delay-ms: 5000
@@ -28,6 +29,7 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -38,7 +40,9 @@ spring:
         delivery.timeout.ms: 30000
         request.timeout.ms: 10000
         max.in.flight.requests.per.connection: 5
-
+    consumer:
+      group-id: bank-card-service
+      auto-offset-reset: earliest
   jpa:
     hibernate:
       ddl-auto: validate

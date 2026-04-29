@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-drop-balance-from-cards
+      author: fedor
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: cards
+            columnName: balance
+
+      changes:
+        - dropColumn:
+            tableName: cards
+            columnName: balance

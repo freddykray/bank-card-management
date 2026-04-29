@@ -76,8 +76,8 @@ public class UserTransferServiceImpl implements UserTransferService {
 
         validateTransfer(from, to, amount);
 
-        from.setBalance(from.getBalance().subtract(amount));
-        to.setBalance(to.getBalance().add(amount));
+//        from.setBalance(from.getBalance().subtract(amount));
+//        to.setBalance(to.getBalance().add(amount));
 
         Transfer transfer = createTransferEntity(from, to, amount, TransferStatus.SUCCESS);
 
@@ -178,15 +178,15 @@ public class UserTransferServiceImpl implements UserTransferService {
             throw new ConflictException("Перевод возможен только между активными картами");
         }
 
-        if (from.getBalance().compareTo(amount) < 0) {
-            log.warn(
-                    "Недостаточно средств для перевода: fromCardId={}, balance={}, amount={}",
-                    from.getId(),
-                    from.getBalance(),
-                    amount
-            );
-            throw new ConflictException("Недостаточно средств для перевода");
-        }
+//        if (from.getBalance().compareTo(amount) < 0) {
+//            log.warn(
+//                    "Недостаточно средств для перевода: fromCardId={}, balance={}, amount={}",
+//                    from.getId(),
+//                    from.getBalance(),
+//                    amount
+//            );
+//            throw new ConflictException("Недостаточно средств для перевода");
+//        }
     }
 
     /**

@@ -1,5 +1,5 @@
 services:
-  postgres:
+  bank-card-postgres:
     image: postgres:16
     container_name: bank-card-postgres
     environment:
@@ -12,6 +12,23 @@ services:
       - bank_card_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgresql -d bank_cards_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  transaction-postgres:
+    image: postgres:16
+    container_name: transaction-postgres
+    environment:
+      POSTGRES_DB: transactions_db
+      POSTGRES_USER: postgresql
+      POSTGRES_PASSWORD: postgresql
+    ports:
+      - "5433:5432"
+    volumes:
+      - transaction_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgresql -d transactions_db"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -30,29 +47,27 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,DOCKER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
-
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-
     volumes:
       - kafka_data:/var/lib/kafka/data
 
-  app:
+  bank-card-service:
     build:
-      context: ..
+      context: ../services/bank-card-service
       dockerfile: Dockerfile
-    container_name: bank-card-app
+    container_name: bank-card-service
     depends_on:
-      postgres:
+      bank-card-postgres:
         condition: service_healthy
       kafka:
         condition: service_started
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bank_cards_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://bank-card-postgres:5432/bank_cards_db
       SPRING_DATASOURCE_USERNAME: postgresql
       SPRING_DATASOURCE_PASSWORD: postgresql
 
@@ -65,6 +80,28 @@ services:
     ports:
       - "8080:8080"
 
+  transaction-service:
+    build:
+      context: ../services/transaction-service
+      dockerfile: Dockerfile
+    container_name: transaction-service
+    depends_on:
+      transaction-postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8081
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://transaction-postgres:5432/transactions_db
+      SPRING_DATASOURCE_USERNAME: postgresql
+      SPRING_DATASOURCE_PASSWORD: postgresql
+
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+    ports:
+      - "8081:8081"
+
 volumes:
   bank_card_postgres_data:
+  transaction_postgres_data:
   kafka_data:

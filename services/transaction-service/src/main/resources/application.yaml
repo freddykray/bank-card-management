@@ -26,3 +26,4 @@ app:
   kafka:
     topics:
       card-created: card-created-events
+      balance-changed: balance-changed-events

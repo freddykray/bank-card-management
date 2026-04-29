@@ -2,7 +2,10 @@ package com.example.bankcards.specification;
 
 import com.example.bankcards.dto.user.request.UserCardSearchRequestDTO;
 import com.example.bankcards.entity.Card;
+import com.example.bankcards.entity.CardBalanceView;
 import com.example.bankcards.entity.enums.CardStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -79,13 +82,17 @@ public class UserCardSpecification {
     }
 
     private static Specification<Card> balanceFrom(BigDecimal balanceFrom) {
-        return (root, query, cb) ->
-                cb.greaterThanOrEqualTo(root.get("balance"), balanceFrom);
+        return (root, query, cb) -> {
+            Join<Card, CardBalanceView> balanceView = root.join("balanceView", JoinType.LEFT);
+            return cb.greaterThanOrEqualTo(balanceView.get("balance"), balanceFrom);
+        };
     }
 
     private static Specification<Card> balanceTo(BigDecimal balanceTo) {
-        return (root, query, cb) ->
-                cb.lessThanOrEqualTo(root.get("balance"), balanceTo);
+        return (root, query, cb) -> {
+            Join<Card, CardBalanceView> balanceView = root.join("balanceView", JoinType.LEFT);
+            return cb.lessThanOrEqualTo(balanceView.get("balance"), balanceTo);
+        };
     }
 
     private static Specification<Card> hasBlockRequested(Boolean blockRequested) {

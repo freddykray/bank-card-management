@@ -219,7 +219,6 @@ public class AdminCardServiceImpl implements AdminCardService {
         card.setOwnerName(request.getOwnerName());
         card.setExpirationDate(generatedCardData.expirationDate());
         card.setStatus(CardStatus.ACTIVE);
-        card.setBalance(request.getInitialBalance());
         card.setBlockRequested(false);
         card.setUser(user);
         card.setCreatedAt(now);
